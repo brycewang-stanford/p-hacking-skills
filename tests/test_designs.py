@@ -46,7 +46,7 @@ def test_liml_kappa_near_one_when_strong():
 def test_rdd_grid_and_null():
     df = pd.read_csv(os.path.join(ROOT, "null_rdd.csv"))
     card = grid.load_card(os.path.join(ROOT, "null_rdd_card.json"))
-    assert grid.universe_size(card)["n_specs"] == 3456
+    assert grid.universe_size(card)["n_specs"] == 20736
     specs = grid.enumerate_specs(card)[::60]
     assert all(s.fe == () and s.vcov != "twoway" for s in specs)
     led = search.flag_pathologies(search.run(df, card, specs=specs), card)

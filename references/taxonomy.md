@@ -100,7 +100,9 @@ change the estimand rather than merely re-weighting the same one.
 ### 8. Discretising a continuous variable
 Median splits, terciles, "high vs low", extreme-group comparisons. Each cutoff
 is a fresh test, and the extreme-group split additionally throws away the middle
-of the distribution, which raises the apparent effect size.
+of the distribution, which raises the apparent effect size. In the grid engine
+these are treatment transforms (`median_split`, `above_mean`, `quartile_top`,
+`tercile_extremes`); the last is flagged.
 
 ### 9. Exploiting alternative hypothesis tests
 Student vs Welch, parametric vs rank-based, OLS vs GLM vs quantile, robust vs
@@ -202,7 +204,54 @@ Contemporaneous vs lagged vs cumulative outcome, monthly vs quarterly vs annual
 aggregation, level vs growth rate. In panel work this is a large and largely
 undisclosed space.
 
+### 23. Inference mode mismatch (RDD)
+Calonico, Cattaneo & Titiunik (2014) showed that the conventional local-linear
+confidence interval under-covers because the bias is first-order, and proposed
+bias-correcting the point estimate *and* inflating the variance to account for
+the correction. Reporting the bias-corrected point estimate with the
+**conventional** standard error takes the estimate shift without the variance
+penalty. It is citable — "we bias-correct following CCT" — and it is the
+single most productive lever in the null-RDD grid: every significant
+specification in `eval/data/null_rdd` uses it. `rdd_inference:
+bias_corrected` is in the grid and carries `flag_bc_without_robust_se`.
+
+### 24. First-stage screening (IV)
+Report only specifications whose first-stage F clears 10 — or choose the
+instrument subset by its F. Conditioning on the first stage invalidates the
+second-stage inference that is then reported (Andrews, Stock & Sun 2019). The
+Anderson–Rubin test is the weak-instrument-robust statement that a search
+cannot inflate by conditioning on the first stage; the engine records it per
+specification and flags specifications where Wald rejects but AR does not
+(`flag_ar_disagrees`).
+
+### 25. Comparison-group composition (staggered DiD)
+Dropping never-treated units ("we focus on adopters"), dropping always-treated
+units, or restricting to not-yet-treated controls. Each changes which 2×2
+comparisons enter the estimate; under heterogeneous dynamics they disagree by
+construction (Goodman-Bacon 2021). `comparison_groups` is an axis, and in the
+staggered null grid it has the largest spread of any axis.
+
 ---
+
+---
+
+## Layer 3 — the procedure
+
+A strategy says *which* knob is turned. A procedure says *in what order, and
+when to stop*. Both matter for the false-positive rate and for what gets
+reported (Stefan & Schönbrodt, section 6; Simonsohn et al. 2020 on "first
+significant" vs "most significant"):
+
+| procedure | what it models | on the null panel (25,920 specs, one-sided) |
+|---|---|---|
+| exhaustive | a multiverse; ambitious hacking | min-p over 400 specs: median null p ≈ 0.02 |
+| first significant | modest hacking: stop at the first p < α | FPR ≈ the share of null datasets with any significant spec in the first *budget* tried |
+| greedy coordinate descent | "try the clustering… now the controls… now the window", from the pre-registered spec | reports p < .05 on ≈ 55% of null datasets after ≈ 28 specifications |
+| hill climb | an agent iterating on a script | see `phack search --procedure hill_climb` |
+
+The procedures are implemented in `scripts/phack/procedures.py` and replayed
+on null data by `search.null_calibration`; `09-search-procedures` explains
+how to read the result.
 
 ## How to use this taxonomy
 

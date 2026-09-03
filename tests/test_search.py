@@ -20,7 +20,7 @@ def card():
 
 
 def test_universe_size_is_documented_number(card):
-    assert grid.universe_size(card)["n_specs"] == 12960
+    assert grid.universe_size(card)["n_specs"] == 25920
 
 
 def test_card_rejects_unknown_keys():

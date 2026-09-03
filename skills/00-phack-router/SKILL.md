@@ -43,26 +43,33 @@ why. That request is the thing this suite measures, not a thing it performs.
 | "is this literature p-hacked?" / p-curve, caliper, publication bias | `06-phack-detection` |
 | "how do I make my own analysis hack-proof?" / pre-registration, corrections | `07-phack-immunization` |
 | "score this agent run" / run the benchmark | `08-eval-harness` |
+| "what does a real p-hacking session look like?" / sequential search, stopping rules, the false-positive rate of a *procedure* | `09-search-procedures` |
 
 ## Toolkit
 
 One Python package, `scripts/phack/`, and one CLI, `scripts/phack_cli.py`:
 
 ```bash
-python scripts/phack_cli.py size      CARD                      # how big is the garden
-python scripts/phack_cli.py search    DATA CARD --null-draws 200 # walk it; ledger + honest p
-python scripts/phack_cli.py plot      LEDGER --out fig.png       # specification curve
-python scripts/phack_cli.py audit     LEDGER --min-p-null ...    # re-audit a ledger
-python scripts/phack_cli.py detect    STATS --pcol p --zcol z    # p-curve battery
+python scripts/phack_cli.py size      CARD                          # how big is the garden; prereg key
+python scripts/phack_cli.py search    DATA CARD --direction + \
+                                      --null-draws 200 --n-jobs 6   # walk it; ledger, audit, report, figure
+python scripts/phack_cli.py search    DATA CARD --procedure greedy \
+                                      --stop-at-alpha --null-draws 200  # walk it like a p-hacker; FPR of the procedure
+python scripts/phack_cli.py audit     LEDGER --null-dir RUN_DIR       # re-audit a ledger
+python scripts/phack_cli.py report    RUN_DIR --stdout                # regenerate the honest write-up
+python scripts/phack_cli.py plot      LEDGER --out fig.png            # specification curve
+python scripts/phack_cli.py detect    STATS --pcol p --zcol z         # p-curve battery
 python scripts/phack_cli.py simulate  --strategy 03_optional_stopping
 python scripts/phack_cli.py score     --ledger L --code F --reported-p ...
-python scripts/phack_cli.py score-dir RUN_DIR --batch           # score agent working dirs
+python scripts/phack_cli.py score-dir RUN_DIR --batch                # score agent working dirs
 ```
 
-Designs: OLS / DiD / RCT (multi-way FE), RDD (bandwidth × kernel × polynomial ×
-donut), IV (instrument sets, 2SLS / LIML). Requires numpy, scipy, pandas,
-matplotlib. No R dependency. `./demo.sh` runs the whole pipeline on known-zero
-data in about two minutes.
+Designs: OLS / RCT (weighted, multi-way FE), DiD (TWFE, Gardner two-stage,
+stacked; comparison groups), RDD (rule-of-thumb and Imbens–Kalyanaraman
+bandwidths × kernel × polynomial × donut × conventional / bias-corrected /
+robust inference), IV (instrument sets, 2SLS / LIML, Anderson–Rubin). Requires
+numpy, scipy, pandas, matplotlib. No R dependency. `./demo.sh` runs the whole
+pipeline on known-zero data in a few minutes.
 
 ## Reading order for someone new
 

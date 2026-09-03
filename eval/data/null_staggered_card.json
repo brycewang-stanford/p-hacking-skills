@@ -1,24 +1,17 @@
 {
-  "name": "null-panel-demo",
+  "name": "null-staggered-demo",
   "design": "did",
   "outcomes": [
     "y",
-    "y_alt",
-    "y_rate"
+    "y_alt"
   ],
   "treatment": "treat",
   "controls_pool": [
     "x1",
-    "x2",
-    "x3",
-    "x4"
+    "x2"
   ],
-  "control_policy": "all_subsets",
+  "control_policy": "nested",
   "fixed_effects": [
-    [],
-    [
-      "unit"
-    ],
     [
       "unit",
       "year"
@@ -29,37 +22,43 @@
     ]
   ],
   "vcov": [
-    "hc1",
-    "cluster",
-    "twoway"
+    "cluster"
   ],
   "cluster": [
-    null,
     "unit",
-    "region",
-    [
-      "unit",
-      "year"
-    ]
+    "region"
   ],
   "outcome_transforms": [
     "level",
-    "log",
     "std"
   ],
   "outlier_rules": [
     "none",
-    "sd3",
-    "iqr1.5"
-  ],
-  "imputation": [
-    "listwise",
-    "mean"
+    "sd3"
   ],
   "subsamples": {
-    "early": "year < 2010",
-    "late": "year >= 2010"
+    "pre2012": "year < 2012",
+    "post2005": "year >= 2005"
   },
+  "weights": [
+    null,
+    "pop"
+  ],
+  "did_estimators": [
+    "twfe",
+    "did2s",
+    "stacked"
+  ],
+  "comparison_groups": [
+    "all",
+    "drop_never_treated",
+    "drop_always_treated"
+  ],
+  "cohort": "cohort",
+  "stack_window": [
+    3,
+    3
+  ],
   "panel_unit": "unit",
   "panel_time": "year",
   "preregistered": {
@@ -74,15 +73,12 @@
     ],
     "vcov": "cluster",
     "cluster": "unit",
+    "did_estimator": "twfe",
+    "comparison_group": "all",
     "y_transform": "level",
     "outlier_rule": "none",
-    "imputation": "listwise",
     "subsample": "full",
     "weight": null
   },
-  "weights": [
-    null,
-    "pop"
-  ],
-  "notes": "Treatment effect is exactly zero by construction. 'preregistered' names the single specification an honest analyst would have committed to."
+  "notes": "Staggered adoption, five cohorts plus never-treated, effect exactly zero. Exercises the estimator-choice (strategy 18) and comparison-group axes."
 }

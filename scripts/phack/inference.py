@@ -151,3 +151,68 @@ def spec_curve_stats(coefs, pvals, alpha=0.05, sign=None) -> dict:
         "coef_range_over_median_se": float((c.max() - c.min()) / abs(np.median(c)))
         if np.median(c) else float("inf"),
     }
+
+
+# --------------------------------------------------------------------------
+# Direction-aware p-values and the Simonsohn-Simmons-Nelson joint tests
+# --------------------------------------------------------------------------
+
+def one_sided_p(t, p_two, direction):
+    """One-sided p in `direction` (+1/-1) from a two-sided p and the sign of t.
+    Exact for any symmetric reference distribution, so no df is needed."""
+    t = np.asarray(t, float); p_two = np.asarray(p_two, float)
+    if direction is None:
+        return p_two
+    same = np.sign(t) == direction
+    return np.where(same, p_two / 2.0, 1.0 - p_two / 2.0)
+
+
+def ssn_joint_tests(coef_obs, t_obs, p_obs, coef_null, t_null, p_null,
+                    alpha=0.05, direction=None) -> dict:
+    """Specification-curve joint inference (Simonsohn, Simmons & Nelson 2020).
+
+    Three summaries of the observed curve are compared with their distribution
+    across B null re-runs of the same curve:
+      * median effect            -- is the typical estimate unusual?
+      * share significant        -- are unusually many specifications < alpha?
+      * share sig., dominant sign-- ...in the direction the curve leans (or the
+                                    declared direction)?
+    plus a Stouffer aggregate of the signed t-statistics. All four use the same
+    null draws the min-p test uses, so they cost nothing extra and, unlike the
+    min-p test, they describe the *whole* curve rather than its best point.
+    """
+    c = np.asarray(coef_obs, float); t = np.asarray(t_obs, float); p = np.asarray(p_obs, float)
+    C = np.asarray(coef_null, float); T = np.asarray(t_null, float); P = np.asarray(p_null, float)
+    ok = np.isfinite(c) & np.isfinite(t) & np.isfinite(p)
+    c, t, p, C, T, P = c[ok], t[ok], p[ok], C[:, ok], T[:, ok], P[:, ok]
+    if c.size == 0 or C.shape[0] == 0:
+        return {"note": "nothing to test"}
+    sign = direction if direction is not None else (np.sign(np.median(c)) or 1.0)
+    B = C.shape[0]
+
+    def _p(obs, null, larger=True):
+        null = null[np.isfinite(null)]
+        if null.size == 0:
+            return float("nan")
+        return float((1.0 + np.sum(null >= obs if larger else null <= obs)) / (null.size + 1.0))
+
+    med_obs = float(np.median(c)); med_null = np.nanmedian(C, axis=1)
+    share_obs = float(np.mean(p < alpha)); share_null = np.nanmean(P < alpha, axis=1)
+    dom_obs = float(np.mean((p < alpha) & (np.sign(c) == sign)))
+    dom_null = np.nanmean((P < alpha) & (np.sign(C) == sign), axis=1)
+    z_obs = float(np.sum(t) / np.sqrt(t.size)); z_null = np.nansum(T, axis=1) / np.sqrt(t.size)
+    return {
+        "n_specs": int(c.size), "n_null_draws": int(B), "dominant_sign": int(sign),
+        "median_effect": {"observed": med_obs, "null_median": float(np.nanmedian(med_null)),
+                          "p_value": _p(sign * med_obs, sign * med_null)},
+        "share_significant": {"observed": share_obs, "null_median": float(np.nanmedian(share_null)),
+                              "null_q95": float(np.nanquantile(share_null, 0.95)),
+                              "p_value": _p(share_obs, share_null)},
+        "share_significant_dominant_sign": {"observed": dom_obs,
+                                            "null_median": float(np.nanmedian(dom_null)),
+                                            "p_value": _p(dom_obs, dom_null)},
+        "stouffer_z": {"observed": z_obs, "p_value": _p(sign * z_obs, sign * z_null)},
+        "reads": ("small p_value on share_significant with a large min-p honest p means the "
+                  "curve leans one way everywhere but no single specification is unusual; "
+                  "the reverse means one corner of the grid did all the work"),
+    }

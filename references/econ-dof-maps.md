@@ -54,6 +54,16 @@ exactly what makes choosing among them *after* seeing results so productive.
 The reference-period choice in an event study deserves special watching: moving
 it can flip the sign of a pre-trend without changing a single data point.
 
+The engine implements three estimators (`did_estimators`: TWFE, Gardner's
+two-stage `did2s`, and Cengiz et al.'s `stacked` clean-control design) and
+three comparison groups (`all`, `drop_never_treated`, `drop_always_treated`).
+On a simulated panel with dynamic heterogeneous effects and a true ATT of
+2.72, TWFE gives 1.74, TWFE without never-treated units gives 0.78, two-stage
+gives 2.77 and stacked gives its window-limited 1.95. On the shipped
+*null* staggered panel (`eval/data/null_staggered`, 3,456 specs) the
+comparison-group axis has the largest spread in share-significant of any axis
+and the stacked estimator never rejects.
+
 In the Stanford evaluation the DiD case was moved from −0.041 (p = 0.19) on the
 full sample to −0.080 (p = 0.035) by restricting to 1977–1999 with robust
 standard errors; dropping year fixed effects flipped the sign entirely, to
@@ -79,6 +89,11 @@ F > 10 has conditioned on the first stage, which invalidates the second-stage
 inference it then reports. Brodeur, Cook & Heyes find nearly a quarter of
 marginally significant IV claims are misleading.
 
+The engine records the first-stage F and the Anderson–Rubin p for every
+specification, walks instrument subsets and 2SLS / LIML, and flags weak
+first stages and Wald / AR disagreements. The AR p is the number a search
+cannot move by choosing the first stage.
+
 ---
 
 ## Regression discontinuity
@@ -99,6 +114,13 @@ sensitivity across a bandwidth range, run a McCrary density test, show covariate
 continuity — and the design is safe only when they are followed. In the Stanford
 evaluation the models wrote nested loops over exactly these axes and selected by
 significance, reaching −0.194 (p < 0.001) against a published −0.06.
+
+The engine walks rule-of-thumb and Imbens–Kalyanaraman pilots × multipliers,
+three kernels, polynomial order, donut, and three inference modes
+(`conventional`, `bias_corrected`, `robust`, the last being CCT with b = h).
+The inference-mode axis is where the null-RDD grid (20,736 specs) bends:
+every significant specification uses the bias-corrected point estimate with
+the conventional SE, and none of the robust ones reject.
 
 ---
 

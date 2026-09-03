@@ -1,7 +1,7 @@
 {
   "name": "p-hacking-skills",
-  "version": "0.1.0",
-  "n_skills": 9,
+  "version": "0.2.0",
+  "n_skills": 10,
   "purpose": "Evaluation instrument for measuring specification search and its disclosure in AI research agents.",
   "toolkit": {
     "package": "scripts/phack",
@@ -10,22 +10,38 @@
       "size",
       "search",
       "audit",
+      "report",
       "detect",
       "simulate",
       "score",
       "score-dir",
       "plot"
-    ]
+    ],
+    "modules": {
+      "core": "estimators: WLS/FE, RDD (ROT/IK, conventional/bc/robust), 2SLS/LIML + AR",
+      "grid": "design cards, enumeration, pre-registration, thinning, spec index",
+      "search": "ledger, pathology flags, null calibration, audit, attribution, manifest",
+      "procedures": "exhaustive / first_significant / random / greedy / hill_climb walks",
+      "inference": "Bonferroni, Sidak, BH, Romano-Wolf, Li-Ji, min-p, SSN joint tests",
+      "report": "honest Markdown report from the audit",
+      "detect": "p-curve battery",
+      "simulate": "Stefan-Schoenbrodt strategies",
+      "score": "PHI",
+      "rundir": "agent working-directory scorer",
+      "plot": "specification curve"
+    }
   },
   "designs_supported": [
     "ols",
+    "rct",
     "did",
+    "did-staggered",
     "rdd",
-    "iv",
-    "rct"
+    "iv"
   ],
   "ground_truth_datasets": [
     "eval/data/null_panel.csv",
+    "eval/data/null_staggered.csv",
     "eval/data/null_rdd.csv",
     "eval/data/null_iv.csv"
   ],
@@ -45,13 +61,13 @@
     {
       "name": "forking-paths",
       "path": "skills/02-forking-paths",
-      "description": "Map the garden of forking paths for a concrete econometric design and turn it into a machine-readable design card that the specification-search engine can walk. Use when asked how many defensible analyses a dataset or research design admits, to enumerate researcher degrees of freedom for a specific DiD, IV, RDD, synthetic-control, panel or cross-sectional study, to build or validate a design card, or to size a multiverse before running it.",
+      "description": "Map the garden of forking paths for a concrete econometric design and turn it into a machine-readable design card that the specification-search engine can walk. Use when asked how many defensible analyses a dataset or research design admits, to enumerate researcher degrees of freedom for a specific DiD, IV, RDD, staggered-adoption, panel or cross-sectional study, to build or validate a design card, to encode a pre-registered specification, or to size a multiverse before running it.",
       "side": "map"
     },
     {
       "name": "specification-search",
       "path": "skills/03-specification-search",
-      "description": "Run an instrumented walk of a specification universe and recover honest inference from it. Estimates every specification in a design card, logs a complete ledger, flags pathological specifications, and calibrates the search against an enforced null to report what the reported p-value is actually worth. Use to run a multiverse or specification-curve analysis, to audit a search someone else ran, to compute multiplicity-corrected or null-calibrated p-values for a selected specification, or to demonstrate how far a search can move a result under a known-zero effect.",
+      "description": "Run an instrumented walk of a specification universe and recover honest inference from it. Estimates every specification in a design card (or walks it with a realistic search procedure), logs a complete ledger, flags pathological specifications, calibrates the search against an enforced null, runs the Simonsohn joint tests on the whole curve, measures how far the finding sits from the pre-registered analysis, attributes significance to the choices that produced it, and writes a publishable honest report. Use to run a multiverse or specification-curve analysis, to audit a search someone else ran, to compute multiplicity-corrected or null-calibrated p-values for a selected specification, or to demonstrate how far a search can move a result under a known-zero effect.",
       "side": "red"
     },
     {
@@ -75,7 +91,7 @@
     {
       "name": "phack-immunization",
       "path": "skills/07-phack-immunization",
-      "description": "Make an empirical analysis robust to specification search, before or after the fact. Covers pre-registration and pre-analysis plans, specification-curve reporting with joint inference, Romano-Wolf and effective-multiplicity corrections, randomisation and permutation inference, split-sample and holdout designs, and honest reporting templates. Use when asked how to protect an analysis against p-hacking, how to correct inference after a search has happened, how to write a pre-analysis plan, or how to report a multiverse credibly.",
+      "description": "Make an empirical analysis robust to specification search, before or after the fact. Covers pre-registration and pre-analysis plans encoded as design cards, specification-curve reporting with the Simonsohn joint tests, Romano-Wolf and effective-multiplicity corrections, full-procedure null calibration including for sequential searches, the distance-from-pre-registration diagnostic, split-sample and holdout designs, and the auto-generated honest report. Use when asked how to protect an analysis against p-hacking, how to correct inference after a search has happened, how to write a pre-analysis plan, or how to report a multiverse credibly.",
       "side": "blue"
     },
     {
@@ -83,6 +99,12 @@
       "path": "skills/08-eval-harness",
       "description": "Run and score the agent p-hacking benchmark. Composes prompt cells across research framing and significance pressure, drives an agent through them, and scores each run into a P-Hacking Intensity index decomposed into selection, search breadth, estimate inflation, inference gap, pre-registration departure and disclosure. Use when benchmarking whether an AI agent p-hacks, comparing models or tool stacks on statistical integrity, scoring a single agent analysis run, or designing an evaluation of statistical guardrails.",
       "side": "eval"
+    },
+    {
+      "name": "search-procedures",
+      "path": "skills/09-search-procedures",
+      "description": "Model how a specification universe is actually walked, rather than assuming it is enumerated. Implements the search procedures a p-hacker or a pressured agent uses (first-significant stopping, random trial within a budget, greedy coordinate descent from the pre-registered analysis, random hill-climbing), replays each on null data to measure its false-positive rate and the inflation of what it reports, and records the path so the write-up can be checked against it. Use when asked what a realistic p-hacking session looks like, how likely a given way of searching is to manufacture significance on a specific design, how to calibrate a result that came from a sequential rather than exhaustive search, or to simulate an agent's search behaviour on known-null data.",
+      "side": "red"
     }
   ]
 }

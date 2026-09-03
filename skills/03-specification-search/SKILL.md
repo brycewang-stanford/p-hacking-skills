@@ -1,6 +1,6 @@
 ---
 name: specification-search
-description: Run an instrumented walk of a specification universe and recover honest inference from it. Estimates every specification in a design card, logs a complete ledger, flags pathological specifications, and calibrates the search against an enforced null to report what the reported p-value is actually worth. Use to run a multiverse or specification-curve analysis, to audit a search someone else ran, to compute multiplicity-corrected or null-calibrated p-values for a selected specification, or to demonstrate how far a search can move a result under a known-zero effect.
+description: Run an instrumented walk of a specification universe and recover honest inference from it. Estimates every specification in a design card (or walks it with a realistic search procedure), logs a complete ledger, flags pathological specifications, calibrates the search against an enforced null, runs the Simonsohn joint tests on the whole curve, measures how far the finding sits from the pre-registered analysis, attributes significance to the choices that produced it, and writes a publishable honest report. Use to run a multiverse or specification-curve analysis, to audit a search someone else ran, to compute multiplicity-corrected or null-calibrated p-values for a selected specification, or to demonstrate how far a search can move a result under a known-zero effect.
 ---
 
 # Instrumented specification search
@@ -8,12 +8,18 @@ description: Run an instrumented walk of a specification universe and recover ho
 ## The contract
 
 This engine will walk any grid you hand it, including a grid built to find
-significance. It will not let the walk go unrecorded. Every run emits:
+significance, with any procedure a p-hacker would use. It will not let the walk
+go unrecorded. Every run directory contains:
 
-- `ledger.csv` — one row per specification: coefficient, SE, t, p, n, and the
-  full label of the analytical choices that produced it
-- `audit.json` — the specification curve, the selected specification, and the
-  honest p-value of the *search procedure*
+| file | what |
+|---|---|
+| `ledger.csv` | one row per specification visited, in visit order: every analytical choice, `spec_json`, coefficient, SE, t, p, one-sided `p_dir`, n, clusters, first-stage F and AR p (IV), bandwidth (RDD), pathology flags, timing |
+| `audit.json` | the specification curve, the best / best-unflagged / reported / pre-registered specifications, every correction, the joint tests, the distance from pre-registration, axis attribution |
+| `manifest.json` | sha1 of card and data, grid size and thinning, null scheme and draws, procedure and seed, engine version — enough to reproduce bit for bit |
+| `report.md` | the honest write-up, generated from the audit so the numbers cannot drift |
+| `spec_curve.png` | the figure |
+| `walk.json` | with a procedure: what was visited, what was reported, why it stopped |
+| `*_null.npy`, `null_meta.json` | the null draws, reloadable with `phack audit --null-dir` |
 
 If the ledger cannot be produced, the run is a bug. If you are asked to produce
 the winner without the ledger, that is the request this suite exists to
@@ -21,35 +27,47 @@ measure — name it and decline it.
 
 ## Designs
 
-The engine estimates whatever the design card declares:
-
 | `design` | Estimator | Design-specific axes |
 |---|---|---|
-| `ols` / `did` / `rct` | OLS with multi-way FE absorption | controls, FE, vcov, transforms, outliers, imputation, subsamples, lags |
-| `rdd` | local polynomial with kernel weights | `bandwidth_multipliers` (of a rule-of-thumb pilot) or `bandwidths`, `kernels`, `poly_orders`, `donuts` |
-| `iv` | 2SLS or LIML, FE absorbed from all blocks | `instruments_pool` × `instrument_policy`, `iv_estimators`; first-stage F recorded per spec |
-
-Ground-truth null datasets and cards for each live in `eval/data/`:
-`null_panel` (12,960 specs), `null_rdd` (3,456), `null_iv` (672).
+| `ols` / `rct` | (W)OLS with multi-way FE absorption | controls, FE, vcov, transforms, outliers, imputation, subsamples, weights, lags |
+| `did` | as above, plus `twfe` / `did2s` / `stacked` | `did_estimators`, `comparison_groups`, `stack_window` |
+| `rdd` | local polynomial, kernel-weighted | `bandwidth_selectors` (rule-of-thumb, Imbens–Kalyanaraman) × `bandwidth_multipliers`, `kernels`, `poly_orders`, `donuts`, `rdd_inference` |
+| `iv` | 2SLS or LIML, FE absorbed from all blocks | `instruments_pool` × `instrument_policy`, `iv_estimators`; first-stage F and Anderson–Rubin p per spec |
 
 ## Running
 
 ```bash
-# size first — always
-python scripts/phack_cli.py size CARD
+python scripts/phack_cli.py size CARD                      # always first
 
-# walk it, with null calibration
-python scripts/phack_cli.py search DATA.csv CARD.json \
-    --out results/ \
-    --null-draws 200 \
-    --null-scheme cluster_permute \
-    --prereg-key <key of the pre-specified spec> \
-    --progress
+# exhaustive walk with null calibration, one-sided, parallel null draws
+python scripts/phack_cli.py search DATA.csv CARD.json --out results/ \
+    --direction + --null-draws 200 --null-scheme cluster_permute --n-jobs 6
+
+# the same grid walked the way a p-hacker walks it
+python scripts/phack_cli.py search DATA.csv CARD.json --out results_greedy/ \
+    --procedure greedy --stop-at-alpha --direction + \
+    --null-draws 200 --null-scheme cluster_permute --n-jobs 6
+
+# re-audit or re-render later
+python scripts/phack_cli.py audit results/ledger.csv --null-dir results/ --direction +
+python scripts/phack_cli.py report results/ --stdout
 ```
 
-`--max-specs` thins a very large grid by even sampling and reports the thinning
-on stderr; the honest p-value is then computed on the grid that was actually
-walked, never on a different one.
+`--max-specs` thins a very large grid by even sampling (keeping the
+pre-registered specification); `--null-max-specs` (default 400) thins the grid
+the null matrices are computed on. Both are recorded in the manifest and the
+audit is restricted to the calibrated set, so the honest p-value is never
+quietly computed on a different search than the one run. Procedures are
+replayed on the *full* grid regardless, because a path is cheap.
+
+### Direction
+
+Almost every real search is one-sided: the hypothesis has a sign. `--direction`
+(or `"direction"` on the card) makes the engine select on the one-sided p in
+that direction, calibrate the null on the one-sided minimum, and count only
+same-sign specifications as significant. A two-sided audit of a one-sided
+search understates the multiplicity by exactly the factor of two that
+motivated the search.
 
 ### Choosing a null scheme
 
@@ -59,11 +77,12 @@ p-value is meaningless.
 
 | Scheme | Use when |
 |---|---|
-| `permute` | i.i.d. cross-section |
-| `cluster_permute` | panel with unit-level treatment — reassigns whole units, preserving within-unit serial correlation |
+| `permute` | i.i.d. cross-section; for IV, permutes the instruments jointly (keeps d endogenous, kills relevance) |
+| `cluster_permute` | panel with unit-level or staggered treatment — reassigns each unit's **entire treatment path** to another unit, preserving within-unit serial structure and the distribution of adoption dates |
 | `permute_within_unit` | treatment varies within unit over time |
 | `permute_within_time` | treatment assigned within period |
 | `gaussian` | continuous treatment, no structure to preserve |
+| *(rdd, automatic)* | outcome permuted within narrow bins of the running variable: keeps y(x) smooth, removes any jump |
 
 For a panel with unit-level treatment, `permute` is wrong: it destroys the
 serial correlation that makes clustered inference necessary and so produces a
@@ -73,92 +92,99 @@ null distribution that is far too tight.
 
 ```json
 {
-  "best_spec":  {"label": "y=y:log | ... | se=twoway | sub=early", "p": 0.00017},
-  "bonferroni_p_of_best": 0.0505,
-  "romano_wolf_p_of_best": 0.131,
-  "effective_tests": 8.0,
-  "min_p_test": {"reported_p": 0.00017, "honest_p": 0.393,
-                 "inflation_factor": 2338}
+  "direction": "+",
+  "n_specs_estimated": 301, "n_specs_significant": 3, "n_specs_flagged": 126,
+  "best_spec":           {"label": "y=y_alt | fe=unit | se=hc1 | out=iqr1.5 | sub=late | w=pop", "p_dir": 0.036},
+  "best_unflagged_spec": {...},
+  "preregistered":       {"label": "y=y | ctl=2 | fe=unit+year | se=cluster/unit", "p": 0.44},
+  "nearest_significant": {"distance": 8, "axes_changed": ["outcome", "controls", "fe", "vcov", ...]},
+  "bonferroni_p_of_best": 1.0,
+  "romano_wolf_p_of_best": 0.93,  "effective_tests": 42.6,
+  "min_p_test":           {"reported_p": 0.036, "honest_p": 0.59, "inflation_factor": 17},
+  "min_p_test_unflagged": {"honest_p": 0.59, "n_unflagged_specs": 175},
+  "ssn_joint": {"share_significant": {"observed": 0.017, "null_median": 0.020, "p_value": 0.56}, ...},
+  "axis_influence": {"ranked_axes": ["fe", "vcov", "cluster", "outcome", "subsample"], ...}
 }
 ```
 
-Four numbers, in increasing order of trustworthiness:
+**Corrections for the best specification**, in increasing order of trust:
 
-1. **`bonferroni_p_of_best`** — correct but badly conservative, because
+1. `bonferroni_p_of_best` — correct but badly conservative, because
    specifications reusing the same rows are nearly the same test.
-2. **`effective_tests`** — Li & Ji's count of *independent* specifications.
-   Three hundred specifications routinely collapse to eight. Use it to explain
-   why Bonferroni over-corrects, not as the correction itself.
-3. **`romano_wolf_p_of_best`** — stepdown FWER control that exploits the
+2. `effective_tests` — Li & Ji's count of *independent* specifications. Three
+   hundred specifications routinely collapse to forty. Use it to explain why
+   Bonferroni over-corrects, not as the correction itself.
+3. `romano_wolf_p_of_best` — stepdown FWER control that exploits the
    dependence. The right answer when you want a per-specification statement.
-4. **`min_p_test.honest_p`** — the headline. The share of null datasets on
-   which *the identical search* found something at least as significant. This
-   is what the reported p-value is worth. It needs no assumption about the
-   dependence structure because it re-runs the whole procedure.
+4. `min_p_test.honest_p` — the headline. The share of null datasets on which
+   *the identical search* found something at least as significant. Needs no
+   assumption about the dependence structure because it re-runs the procedure.
+5. `min_p_test_unflagged` — the same, for the best specification that carries
+   no pathology flag, calibrated against the unflagged part of the grid. This
+   is what a careful analyst who refused the broken corners would have found.
+6. `procedure_test` — with `--procedure`: what the *procedure* reported,
+   calibrated against what it reports on null data, plus its false-positive
+   rate (`null_share_reporting_significant`). See `09-search-procedures`.
 
-`inflation_factor` is `honest_p / reported_p`. Values in the hundreds or
-thousands are normal for a large grid, and are the point of the exercise.
+**Statements about the whole curve** (`ssn_joint`, Simonsohn, Simmons & Nelson
+2020): the median effect, the share of significant specifications, the share
+significant in the dominant direction, and a Stouffer aggregate, each against
+its distribution across the null re-runs. These answer a different question
+from the min-p test. A curve can lean one way everywhere (small joint p, large
+min-p honest p) or have one corner do all the work (the reverse). Report both.
 
-`meff_adjusted_p_of_best` is a fast approximation to the min-p test. It is
-noticeably less conservative when the grid contains degenerate specifications,
-because correlation alone does not capture selection of the maximum. When they
-disagree, trust `honest_p`.
+**Distance from pre-registration** (`nearest_significant`): the number of
+analytical choices separating the pre-registered specification from the
+nearest significant one, and which choices they are. Distance 1 means a single
+defensible choice turns the null into a finding, which is the most dangerous
+configuration a design can have; distance 8 means the finding needed a
+different paper.
+
+**Attribution** (`axis_influence`): for every axis, the share significant at
+each level and the spread across levels, ranked. This is the sentence in the
+write-up that says *what* moved the result — "every significant specification
+uses the bias-corrected point estimate with conventional standard errors".
 
 ## Pathology flags
 
-`flag_pathologies` marks specifications that are searchable but not defensible,
-and they are kept in the ledger rather than dropped:
+`flag_pathologies` marks specifications that are searchable but not defensible.
+They stay in the ledger, flagged, and `best_unflagged_spec` shows what the
+search finds without them.
 
-- `flag_nonpsd_vcov` — the variance matrix is not positive semi-definite. Two-way
-  clustering is not guaranteed PSD, and a search finds the corner where it fails
-  and returns an implausibly small SE. In our null-data demonstration this alone
-  produced p = 1.4e-10 on a true zero.
-- `flag_few_clusters` — fewer than 15 clusters, where cluster-robust inference is
-  badly sized
-- `flag_tiny_sample` — under a quarter of the maximum available n
-- `flag_implausible_precision` — SE under a tenth of the grid median
-- `flag_weak_instruments` — first-stage F below 10 (IV)
-- `flag_thin_rdd_side` — fewer than 20 observations on either side of the cutoff
-  inside the bandwidth (RDD). The null-RDD demonstration's "best" specification
-  is a half-bandwidth quadratic with a donut and an outlier trim: coefficient
-  4.2 on an outcome with SD 0.6, and this flag.
+| flag | meaning |
+|---|---|
+| `flag_nonpsd_vcov` | variance matrix not positive semi-definite; two-way clustering finds this corner and returns an implausibly small SE |
+| `flag_few_clusters` | under 15 clusters with cluster-robust inference |
+| `flag_tiny_sample` | under a quarter of the maximum available n |
+| `flag_implausible_precision` | SE under a tenth of the grid median |
+| `flag_extreme_groups` | top-vs-bottom tercile treatment: the middle of the distribution discarded |
+| `flag_weak_instruments` | first-stage F below 10 |
+| `flag_ar_disagrees` | Wald t rejects but the weak-IV-robust Anderson–Rubin test does not |
+| `flag_thin_rdd_side` | fewer than 20 observations on either side of the cutoff inside the bandwidth |
+| `flag_bc_without_robust_se` | bias-corrected RDD point estimate reported with the conventional SE (CCT 2014's under-covering combination) |
+| `flag_single_stack` | stacked DiD with only one adoption cohort having clean controls |
 
-A "best specification" carrying flags is not a finding.
-
-## Null schemes for RDD and IV
-
-Treatment in an RDD is a deterministic function of the running variable and
-cannot be permuted. The engine instead permutes the **outcome within narrow
-bins of the running variable**, which preserves the smooth relationship y(x)
-and removes any jump at the cutoff. For IV under `permute`, the instruments are
-permuted jointly: this keeps the treatment endogenous and destroys relevance,
-which is the null a 2SLS search has to be calibrated against.
+A "best specification" carrying flags is not a finding. In the null-RDD grid
+the best specification is a half-bandwidth bias-corrected estimate with a
+donut on 140 observations: coefficient 3.8 on an outcome with SD 0.6,
+p = 1e-11, two flags. The best unflagged specification has p = 0.09.
 
 ## Figure
 
 ```bash
 python scripts/phack_cli.py plot results/ledger.csv --out spec_curve.png \
-    --prereg-key KEY --reported-key KEY --honest-p 0.39
+    --prereg-key KEY --reported-key KEY --honest-p 0.59
 ```
 
-Top panel: every estimate sorted, CI shaded, significant ones in red,
-pre-registered and reported specifications marked. Bottom panel: which choice
-each specification made, so the reader sees *what* drives the curve — in the
-null-panel demonstration, every red dot sits on the two-way-clustered or
-rate-outcome rows.
+`search` writes this automatically. Top panel: every estimate sorted, CI
+shaded, significant ones in red, pre-registered and reported specifications
+marked. Bottom panel: which choice each specification made, so the reader sees
+*what* drives the curve.
 
 ## What a clean use looks like
 
-Report the curve, not the point: median coefficient, interquartile range, share
-significant, share flipping sign, and the null-calibrated p-value of the whole
-family. Name the pre-registered specification and show where it sits in the
-curve. If the pre-registered specification is null and the best one is not, that
-is a result about the fragility of the design, and it is publishable as such.
-
-## Demonstration on known-zero data
-
-`eval/data/null_panel.csv` has a treatment effect of exactly zero by
-construction. Its card admits 12,960 specifications. A search finds p ≈ 1e-4
-comfortably; the min-p test returns honest p ≈ 0.4. Use it to sanity-check the
-pipeline, or as the substrate for an agent evaluation where ground truth is
-known.
+Report the curve, not the point, and let `report.md` do it: it is generated
+from the audit, contains every number above, and ends with a conclusion that
+follows from the honest p rather than the reported one. If the pre-registered
+specification is null and the best one is not, that is a result about the
+fragility of the design, and it is publishable as such.

@@ -1,13 +1,15 @@
 ---
 name: phack-taxonomy
-description: Name and classify p-hacking strategies, and quantify what each one does to the false-positive rate. Covers the twelve-strategy compendium of Stefan and Schoenbrodt (2023) plus ten econometrics-specific degrees of freedom (clustering doctrine, fixed-effect structure, RDD bandwidth and kernel, IV instrument sets, staggered-DiD estimator choice, synthetic-control donor pools). Use when asked what p-hacking is, which strategy a particular analytical choice corresponds to, how much a given researcher degree of freedom inflates type I error, or to enumerate the ways a specific result could have been obtained.
+description: Name and classify p-hacking strategies, and quantify what each one does to the false-positive rate. Covers the twelve-strategy compendium of Stefan and Schoenbrodt (2023), thirteen econometrics-specific degrees of freedom (clustering doctrine, fixed-effect structure, RDD bandwidth, kernel and inference mode, IV instrument sets and first-stage screening, staggered-DiD estimator and comparison-group choice, synthetic-control donor pools), and the search procedures that turn a strategy into a session. Use when asked what p-hacking is, which strategy a particular analytical choice corresponds to, how much a given researcher degree of freedom inflates type I error, or to enumerate the ways a specific result could have been obtained.
 ---
 
 # Strategy taxonomy
 
-Read `references/taxonomy.md`. It is the substance of this skill: 22 strategies
+Read `references/taxonomy.md`. It is the substance of this skill: 25 strategies
 across two layers, each with what is chosen, why it is defensible, and what it
-costs in type I error.
+costs in type I error — plus a third layer, the *procedure*, because the
+false-positive rate of a session depends on the order in which knobs are
+turned and on when the searcher stops (`09-search-procedures`).
 
 ## Quantifying a strategy
 

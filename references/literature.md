@@ -32,8 +32,10 @@ absence. Code: `astefan1/phacking_compendium` (R package `phackR`);
 
 **Simonsohn, Simmons & Nelson (2020),** "Specification curve analysis", *Nature
 Human Behaviour*. Descriptive and inferential statistics on all reasonable
-specifications, including the joint permutation test. Implementations:
-`masurp/specr`, `MUCollective/multiverse`.
+specifications, including the joint permutation tests on the median effect,
+the share significant and the share significant in the dominant direction —
+implemented as `inference.ssn_joint_tests` and reported under `ssn_joint`.
+Implementations: `masurp/specr`, `MUCollective/multiverse`.
 
 **Steegen et al. (2016),** "Increasing transparency through a multiverse
 analysis", *PPS*.
@@ -68,6 +70,42 @@ design-risk ordering in `references/econ-dof-maps.md`.
 
 **Simonsohn, Nelson & Simmons (2014),** "p-curve: a key to the file drawer",
 *JEP: General*. The p-curve power estimate implemented in `detect.pcurve_power`.
+
+## Estimators the engine implements, and why they are axes
+
+**Imbens & Kalyanaraman (2012),** "Optimal bandwidth choice for the regression
+discontinuity estimator", *REStud* 79(3). The MSE-optimal bandwidth in
+`core.ik_bandwidth`. One of several "optimal" choices, which is what makes the
+selector an axis.
+
+**Calonico, Cattaneo & Titiunik (2014),** "Robust nonparametric confidence
+intervals for regression-discontinuity designs", *Econometrica* 82(6). Bias
+correction plus a variance that accounts for it. With b = h the robust
+bias-corrected estimator equals the (p+1) local polynomial with its own SE,
+which is how `rdd_inference: robust` is computed; `bias_corrected` without the
+robust SE is the under-covering combination the paper warns against.
+
+**Gardner (2022),** "Two-stage differences in differences", arXiv 2207.05943.
+Fit unit and time effects on untreated observations, remove them everywhere,
+regress the residual on treatment. `did_estimators: did2s`.
+
+**Cengiz, Dube, Lindner & Zipperer (2019),** "The effect of minimum wages on
+low-wage jobs", *QJE* 134(3). The stacked clean-control design.
+`did_estimators: stacked`.
+
+**Goodman-Bacon (2021),** "Difference-in-differences with variation in
+treatment timing", *J. Econometrics*. Why TWFE under staggered adoption is a
+weighted average of 2×2 comparisons including forbidden ones, and therefore
+why the comparison group is an axis. **Callaway & Sant'Anna (2021)**,
+**Sun & Abraham (2021)**, **Borusyak, Jaravel & Spiess (2024)** and
+**de Chaisemartin & D'Haultfœuille (2020)** are the alternatives the taxonomy
+names; the engine ships the two that need no additional machinery.
+
+**Anderson & Rubin (1949).** The weak-instrument-robust test recorded as
+`ar_p` for every IV specification. **Andrews, Stock & Sun (2019),** "Weak
+instruments in IV regression: theory and practice", *Annual Review of
+Economics*, on why screening on the first-stage F invalidates second-stage
+inference.
 
 ## Correcting
 
