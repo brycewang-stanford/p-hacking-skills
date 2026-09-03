@@ -74,6 +74,7 @@ quietly drops an axis makes the multiplicity count wrong.
 | DiD estimator | `did_estimators`: `twfe` / `did2s` (Gardner two-stage) / `stacked` (Cengiz et al.) | did | strategy 18; non-TWFE estimators fix their own FE and collapse the FE axis |
 | comparison group | `comparison_groups`: `all` / `drop_never_treated` / `drop_always_treated` | did | strategy 15; the "forbidden comparison" lever |
 | stack window | `stack_window` `[pre, post]` | did / stacked | periods around adoption |
+| event study | `event_windows` `[[leads, lags], ...]` × `reference_periods` × `event_estimands` (`avg_post` / `lag0` / `lag1` / `avg_pre`) | did / twfe | strategy 19; endpoints binned, reference period omitted; `avg_pre` is the placebo and is flagged when reported as the effect |
 | bandwidth | `bandwidth_selectors` (`rot` / `ik`) × `bandwidth_multipliers`, or absolute `bandwidths` | rdd | strategy 16 |
 | kernel / polynomial / donut | `kernels`, `poly_orders`, `donuts` | rdd | strategy 16 |
 | RDD inference | `rdd_inference`: `conventional` / `bias_corrected` / `robust` | rdd | strategy 23; `bias_corrected` is the under-covering combination and is flagged |
@@ -147,6 +148,7 @@ actually walked, never on a different one.
 |---|---|---|---|
 | `eval/data/null_panel_card.json` | did (within-unit treatment) | 25,920 | controls, FE, SE doctrine, transforms, outliers, imputation, windows, weights |
 | `eval/data/null_staggered_card.json` | did (staggered adoption) | 3,456 | estimator choice, comparison groups, weights, windows |
+| `eval/data/null_staggered_event_card.json` | did (event study) | 1,200 | event window, reference period, estimand, comparison group |
 | `eval/data/null_rdd_card.json` | rdd | 20,736 | bandwidth selector × multiplier, kernel, polynomial, donut, inference mode |
 | `eval/data/null_iv_card.json` | iv | 672 | instrument subsets, 2SLS / LIML, controls, FE, AR test |
 

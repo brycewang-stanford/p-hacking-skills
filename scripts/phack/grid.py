@@ -42,6 +42,10 @@ DEFAULTS = {
     "comparison_groups": ["all"],        # all | drop_never_treated | drop_always_treated
     "cohort": None,                      # documentation only; cohorts are inferred from treatment paths
     "stack_window": [3, 3],              # periods before / after adoption in a stack
+    # --- event-study axes (design == "did", estimator twfe); None = static DiD
+    "event_windows": None,               # list of [leads, lags], endpoints binned
+    "reference_periods": [-1],           # omitted relative period(s)
+    "event_estimands": ["avg_post"],     # avg_post | lag0 | lag1 | avg_pre (placebo)
     # --- RDD axes (design == "rdd"); treatment is 1{running >= cutoff}
     "running": None,
     "cutoff": 0.0,
@@ -64,7 +68,7 @@ REQUIRED = ("outcomes", "treatment")
 # Axis names as they appear in Spec, the ledger, and the preregistered block.
 AXES = ["outcome", "controls", "fe", "vcov", "cluster", "y_transform", "d_transform",
         "outlier_rule", "imputation", "subsample", "weight", "interactions", "lag",
-        "did_estimator", "comparison_group",
+        "did_estimator", "comparison_group", "ev_window", "ev_ref", "ev_estimand",
         "bandwidth", "bw_selector", "kernel", "poly", "donut", "rdd_inference",
         "instruments", "iv_estimator"]
 
@@ -89,6 +93,9 @@ class Spec:
     lag: int
     did_estimator: str = "twfe"
     comparison_group: str = "all"
+    ev_window: object = None      # (leads, lags) or None
+    ev_ref: object = None
+    ev_estimand: object = None
     bandwidth: object = None      # multiplier (float) or ("abs", value)
     bw_selector: str = "rot"
     kernel: str = "triangular"
@@ -117,6 +124,8 @@ class Spec:
             bits.append(f"w={self.weight}")
         if self.did_estimator != "twfe" or self.comparison_group != "all":
             bits.append(f"did={self.did_estimator}/{self.comparison_group}")
+        if self.ev_window is not None:
+            bits.append(f"es=w{self.ev_window[0]}/{self.ev_window[1]}/ref{self.ev_ref}/{self.ev_estimand}")
         if self.bandwidth is not None:
             bw = (f"{self.bandwidth[1]:g}abs" if isinstance(self.bandwidth, tuple)
                   else f"{self.bandwidth:g}x{self.bw_selector}")
@@ -230,6 +239,11 @@ def enumerate_specs(card: dict) -> list[Spec]:
         did_axes = list(itertools.product(card["did_estimators"], card["comparison_groups"]))
     else:
         did_axes = [("twfe", "all")]
+    ev_axes = [(None, None, None)]          # the static DiD is always one of the specs
+    if design == "did" and card["event_windows"]:
+        ev_axes += [(tuple(int(v) for v in w), int(r), e)
+                    for w in card["event_windows"] for r in card["reference_periods"]
+                    for e in card["event_estimands"]]
     subs = card["subsamples"] or {"full": None}
     if "full" not in subs:
         subs = {"full": None, **subs}
@@ -241,11 +255,13 @@ def enumerate_specs(card: dict) -> list[Spec]:
         card["outlier_rules"], card["imputation"],
         list(subs), card["weights"],
         [tuple(i) for i in card["interactions"]], card["lags"],
-        did_axes, rdd_axes, iv_axes,
+        did_axes, ev_axes, rdd_axes, iv_axes,
     )
     specs, i = [], 0
     seen = set()
-    for (y, ctl, fe, vc, cl, yt, dt, orule, imp, sub, w, ints, lag, dd, rd, iv) in axes:
+    for (y, ctl, fe, vc, cl, yt, dt, orule, imp, sub, w, ints, lag, dd, ev, rd, iv) in axes:
+        if ev[0] is not None and (dd[0] != "twfe" or lag or dt in core.DISCRETIZERS):
+            continue                      # event studies: TWFE path only
         if design == "rdd" and (fe or vc == "twoway"):
             continue                      # local polynomial: no FE, no two-way
         if design == "iv" and vc in ("twoway", "hc2", "hc3"):
@@ -270,6 +286,7 @@ def enumerate_specs(card: dict) -> list[Spec]:
                  tuple(cl) if isinstance(cl, list) else cl,
                  yt, dt, orule, imp, sub, w, ints, lag,
                  did_estimator=dd[0], comparison_group=dd[1],
+                 ev_window=ev[0], ev_ref=ev[1], ev_estimand=ev[2],
                  bandwidth=rd[0][0], bw_selector=rd[0][1], kernel=rd[1], poly=rd[2],
                  donut=rd[3], rdd_inference=rd[4],
                  instruments=tuple(iv[0]), iv_estimator=iv[1])
@@ -335,6 +352,9 @@ def _prereg_axes(card, pre):
         "imputation": card["imputation"][0], "subsample": "full", "weight": card["weights"][0],
         "interactions": tuple(), "lag": card["lags"][0],
         "did_estimator": card["did_estimators"][0], "comparison_group": card["comparison_groups"][0],
+        "ev_window": tuple(card["event_windows"][0]) if card["event_windows"] else None,
+        "ev_ref": card["reference_periods"][0] if card["event_windows"] else None,
+        "ev_estimand": card["event_estimands"][0] if card["event_windows"] else None,
         "kernel": card["kernels"][0], "poly": card["poly_orders"][0], "donut": card["donuts"][0],
         "rdd_inference": card["rdd_inference"][0], "bw_selector": card["bandwidth_selectors"][0],
         "bandwidth": (("abs", float(card["bandwidths"][0])) if card["bandwidths"]
@@ -352,6 +372,8 @@ def _prereg_axes(card, pre):
             v = float(v)
         if a == "controls" and isinstance(v, str):
             v = tuple(v.split("+")) if v not in ("none", "") else tuple()
+        if a == "ev_window" and v is not None:
+            v = tuple(int(x) for x in v)
         out[a] = v
     return out
 
@@ -495,6 +517,51 @@ def _did2s_residualise(d, spec, card, ycol, dcol, ctl_cols, wcol):
     return ytil, keep
 
 
+def _event_study_design(d, spec, card, yv, X, wts):
+    """Relative-time dummies with binned endpoints and an omitted reference
+    period; the estimand is a linear combination of the dummy coefficients.
+    Moving the reference period or the window changes the estimate without
+    touching a single data point -- strategy 19."""
+    unit, time = card["panel_unit"], card["panel_time"]
+    leads, lags = spec.ev_window
+    tt = d[time].to_numpy(float)
+    cohort = _infer_cohort(d.assign(__d=X[:, 0]), unit, time, "__d")
+    rel = np.where(np.isfinite(cohort), tt - cohort, np.nan)
+    rel_b = np.clip(rel, -leads, lags)                       # bin the endpoints
+    periods = [r for r in range(-leads, lags + 1) if r != spec.ev_ref]
+    if spec.ev_ref < -leads or spec.ev_ref > lags:
+        raise ValueError(f"reference period {spec.ev_ref} outside window [-{leads}, {lags}]")
+    D = np.column_stack([(np.nan_to_num(rel_b, nan=np.inf) == r).astype(float) for r in periods])
+    if D.sum(axis=0).min() == 0:
+        raise ValueError("an event-time dummy has no support in this sample")
+    Xe = np.column_stack([D, X[:, 1:]]) if X.shape[1] > 1 else D
+    post = [j for j, r in enumerate(periods) if r >= 0]
+    pre = [j for j, r in enumerate(periods) if r < 0]
+    a = np.zeros(Xe.shape[1])
+    if spec.ev_estimand == "avg_post":
+        a[post] = 1.0 / len(post)
+    elif spec.ev_estimand == "avg_pre":
+        a[pre] = 1.0 / len(pre)
+    elif spec.ev_estimand.startswith("lag"):
+        k = int(spec.ev_estimand[3:])
+        j = [j for j, r in enumerate(periods) if r == k]
+        if not j:
+            raise ValueError(f"lag {k} is the reference period or outside the window")
+        a[j[0]] = 1.0
+    else:
+        raise KeyError(f"unknown event estimand {spec.ev_estimand!r}")
+    groups = [d[f].to_numpy() for f in spec.fe]
+    if groups:
+        M, ka = core.absorb(np.column_stack([yv, Xe]), groups, weights=wts)
+        return {"design": "lincom", "y": M[:, 0], "X": M[:, 1:], "cluster": _cl(d, spec),
+                "k_absorbed": ka, "has_const": False, "weights": wts, "vcov": spec.vcov, "a": a,
+                "n_treated_cohorts": int(np.unique(cohort[np.isfinite(cohort)]).size)}
+    return {"design": "lincom", "y": yv, "X": np.column_stack([np.ones(len(yv)), Xe]),
+            "cluster": _cl(d, spec), "k_absorbed": 0, "has_const": True, "weights": wts,
+            "vcov": spec.vcov, "a": np.r_[0.0, a],
+            "n_treated_cohorts": int(np.unique(cohort[np.isfinite(cohort)]).size)}
+
+
 def build(df: pd.DataFrame, spec: Spec, card: dict):
     d = df
     if spec.subsample != "full":
@@ -593,6 +660,8 @@ def build(df: pd.DataFrame, spec: Spec, card: dict):
                 "cluster": _cl(d, spec), "vcov": spec.vcov, "estimator": spec.iv_estimator,
                 "weights": wts}
 
+    if design == "did" and spec.ev_window is not None:
+        return _event_study_design(d, spec, card, yv, X, wts)
     if design == "did" and spec.did_estimator == "did2s":
         dtmp = d.assign(__y=yv, __d=X[:, 0])
         ytil, keep2 = _did2s_residualise(dtmp, spec, card, "__y", "__d", list(spec.controls), spec.weight)

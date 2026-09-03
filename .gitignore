@@ -6,3 +6,4 @@ probe_results/
 results/
 *.npy
 .DS_Store
+demo_out/

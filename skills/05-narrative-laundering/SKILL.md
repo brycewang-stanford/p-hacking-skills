@@ -32,12 +32,33 @@ how many are shown? A robustness table with no failures is evidence of
 selection, not of robustness. An honest one contains at least a few
 specifications where the result weakens.
 
+**Measure:** `phack theatre LEDGER --shown k1,k2,...` compares the shown set
+with random subsets of the ledger it came from. On the null staggered panel, a
+ten-row table built around the best specification is significant in every
+row; a random ten-row table has a median of zero significant rows, and the
+probability of drawing one as favourable is 0.0005. The same command with
+`--reported-key` *builds* that table, with its denominator attached — the
+red-team half, which exists so the blue-team half has something to calibrate
+against.
+
 ### The vanishing pilot
 "We ran a pilot" appears in the acknowledgements or the appendix and nowhere
 else. The pilot was an analysis; its results informed the "pre-specified"
 design.
 
 **Ask:** was the pilot analysed on the same outcome? Is it reported?
+
+### Reference-period narrative
+"We omit the period before treatment, as is standard." Standard, and a
+choice: with binned endpoints, moving the reference period from −1 to −2 or
+−3 changes every event-time coefficient and the post-period average, without
+touching a data point. On a simulated panel with a true average post effect,
+the reported average moves from 0.96 to 1.26 across windows and reference
+periods alone.
+
+**Ask:** which reference period, which window, which endpoint binning — and
+were the alternatives shown? Is the pre-trend reported as a placebo, or is a
+"pre-period effect" being presented as the finding?
 
 ### Estimator-choice narrative
 "Following the recent literature we use Callaway–Sant'Anna" — introduced in the

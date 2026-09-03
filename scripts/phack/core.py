@@ -22,7 +22,7 @@ from scipy import stats
 __all__ = [
     "TRANSFORMS", "DISCRETIZERS", "OUTLIER_RULES", "KERNELS",
     "apply_transform", "flag_outliers", "absorb", "fit_ols", "impute",
-    "rot_bandwidth", "ik_bandwidth", "fit_rdd", "fit_2sls",
+    "rot_bandwidth", "ik_bandwidth", "fit_rdd", "fit_2sls", "fit_lincom",
 ]
 
 # --------------------------------------------------------------------------
@@ -297,6 +297,23 @@ def fit_ols(y: np.ndarray, X: np.ndarray, *, vcov="hc1", cluster=None,
         out["n_clusters"] = int(g_eff)
     if full:
         out["beta_all"] = beta; out["vcov_all"] = V; out["resid"] = u
+    return out
+
+
+def fit_lincom(y, X, a, *, vcov="hc1", cluster=None, k_absorbed=0, weights=None):
+    """OLS, then the estimand a'beta with variance a'Va. Used for event-study
+    aggregates (average post-period effect, a single lag, the pre-trend)."""
+    r = fit_ols(y, X, vcov=vcov, cluster=cluster, k_absorbed=k_absorbed, weights=weights, full=True)
+    a = np.asarray(a, float)
+    b = float(a @ r["beta_all"]); v = float(a @ r["vcov_all"] @ a)
+    s = float(np.sqrt(v)) if v > 0 else float("nan")
+    t = b / s if s and np.isfinite(s) else float("nan")
+    crit = stats.t.ppf(0.975, r["df"])
+    out = {k: r[k] for k in ("n", "df", "k", "resid_var", "psd_ok")}
+    if "n_clusters" in r:
+        out["n_clusters"] = r["n_clusters"]
+    out.update(coef=b, se=s, t=t, p=float(2 * stats.t.sf(abs(t), r["df"])) if np.isfinite(t) else float("nan"),
+               ci_low=b - crit * s, ci_high=b + crit * s)
     return out
 
 

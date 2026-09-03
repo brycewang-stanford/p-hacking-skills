@@ -15,7 +15,7 @@ import pandas as pd
 
 AXES = ["outcome", "controls", "fe", "vcov", "cluster", "y_transform", "d_transform",
         "outlier_rule", "imputation", "subsample", "weight", "did_estimator",
-        "comparison_group", "bw_selector", "bw_multiplier", "kernel", "poly", "donut",
+        "comparison_group", "ev_window", "ev_ref", "ev_estimand", "bw_selector", "bw_multiplier", "kernel", "poly", "donut",
         "rdd_inference", "instruments", "iv_estimator"]
 
 

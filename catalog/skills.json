@@ -11,6 +11,7 @@
       "search",
       "audit",
       "report",
+      "theatre",
       "detect",
       "simulate",
       "score",
@@ -18,7 +19,7 @@
       "plot"
     ],
     "modules": {
-      "core": "estimators: WLS/FE, RDD (ROT/IK, conventional/bc/robust), 2SLS/LIML + AR",
+      "core": "estimators: WLS/FE, event-study linear combinations, RDD (ROT/IK, conventional/bc/robust), 2SLS/LIML + AR",
       "grid": "design cards, enumeration, pre-registration, thinning, spec index",
       "search": "ledger, pathology flags, null calibration, audit, attribution, manifest",
       "procedures": "exhaustive / first_significant / random / greedy / hill_climb walks",
@@ -28,7 +29,8 @@
       "simulate": "Stefan-Schoenbrodt strategies",
       "score": "PHI",
       "rundir": "agent working-directory scorer",
-      "plot": "specification curve"
+      "plot": "specification curve",
+      "theatre": "build the robustness table a launderer would show; audit a shown table against the ledger"
     }
   },
   "designs_supported": [
@@ -36,12 +38,13 @@
     "rct",
     "did",
     "did-staggered",
+    "did-event-study",
     "rdd",
     "iv"
   ],
   "ground_truth_datasets": [
     "eval/data/null_panel.csv",
-    "eval/data/null_staggered.csv",
+    "eval/data/null_staggered.csv (static and event-study cards)",
     "eval/data/null_rdd.csv",
     "eval/data/null_iv.csv"
   ],

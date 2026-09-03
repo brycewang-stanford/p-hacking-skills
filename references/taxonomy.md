@@ -189,7 +189,11 @@ seeing results so effective.
 
 ### 19. Event-window and reference-period choice (event study)
 How many leads and lags, which period is omitted, whether to bin endpoints.
-Moving the reference period alone can flip the sign of a pre-trend.
+Moving the reference period alone can flip the sign of a pre-trend. The
+engine walks `event_windows` × `reference_periods` × `event_estimands`
+(average post-period effect, a single lag, or the pre-trend as a placebo)
+with binned endpoints; `eval/data/null_staggered_event_card.json` is the
+ground-truth grid, and reporting the pre-trend as the effect is flagged.
 
 ### 20. Donor pool and pre-period (synthetic control)
 Which units are eligible donors, how long the pre-period is, which predictors

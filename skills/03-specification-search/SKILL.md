@@ -30,7 +30,7 @@ measure — name it and decline it.
 | `design` | Estimator | Design-specific axes |
 |---|---|---|
 | `ols` / `rct` | (W)OLS with multi-way FE absorption | controls, FE, vcov, transforms, outliers, imputation, subsamples, weights, lags |
-| `did` | as above, plus `twfe` / `did2s` / `stacked` | `did_estimators`, `comparison_groups`, `stack_window` |
+| `did` | as above, plus `twfe` / `did2s` / `stacked`; event-study aggregates by linear combination | `did_estimators`, `comparison_groups`, `stack_window`, `event_windows` × `reference_periods` × `event_estimands` |
 | `rdd` | local polynomial, kernel-weighted | `bandwidth_selectors` (rule-of-thumb, Imbens–Kalyanaraman) × `bandwidth_multipliers`, `kernels`, `poly_orders`, `donuts`, `rdd_inference` |
 | `iv` | 2SLS or LIML, FE absorbed from all blocks | `instruments_pool` × `instrument_policy`, `iv_estimators`; first-stage F and Anderson–Rubin p per spec |
 
@@ -87,6 +87,16 @@ p-value is meaningless.
 For a panel with unit-level treatment, `permute` is wrong: it destroys the
 serial correlation that makes clustered inference necessary and so produces a
 null distribution that is far too tight.
+
+**Calibrate the calibrator.** The honest p-value is honest only if it is
+uniform on fresh null data. `scripts/calibrate_engine.py` draws K fresh
+staggered null panels, runs the same grid, scheme and procedure on each, and
+reports how often the honest p falls below 0.05 and a KS test of uniformity.
+On 12 datasets with `cluster_permute`: 0 of 12 honest p below 0.05 (median
+0.76, KS p = 0.10 — mildly conservative), while the raw best one-sided p was
+below 0.05 on 7 of 12. Run it after changing a null scheme or an estimator;
+a systematic excess of small honest p-values is the one way this engine could
+quietly lie.
 
 ## Reading the audit
 
@@ -163,11 +173,29 @@ search finds without them.
 | `flag_thin_rdd_side` | fewer than 20 observations on either side of the cutoff inside the bandwidth |
 | `flag_bc_without_robust_se` | bias-corrected RDD point estimate reported with the conventional SE (CCT 2014's under-covering combination) |
 | `flag_single_stack` | stacked DiD with only one adoption cohort having clean controls |
+| `flag_event_misuse` | the pre-trend (`avg_pre`) reported as the effect, or a reference period inside the post window |
 
 A "best specification" carrying flags is not a finding. In the null-RDD grid
 the best specification is a half-bandwidth bias-corrected estimate with a
 donut on 140 observations: coefficient 3.8 on an outcome with SD 0.6,
 p = 1e-11, two flags. The best unflagged specification has p = 0.09.
+
+## Robustness theatre
+
+The ledger is also the denominator for any robustness table drawn from it:
+
+```bash
+python scripts/phack_cli.py theatre results/ledger.csv --reported-key KEY --k 12   # build + audit
+python scripts/phack_cli.py theatre results/ledger.csv --shown k1,k2,k3,...        # audit a shown table
+```
+
+`build_table` selects the reported specification and its nearest agreeing
+neighbours — the table a launderer prints — and reports what it hides:
+share of the ledger shown, share agreeing, what a random table of the same
+size would have contained. `audit_table` tests a shown set against random
+subsets of the ledger (`p_share_significant`) and reports the hidden
+specifications' share insignificant and share flipping sign. See
+`05-narrative-laundering`.
 
 ## Figure
 

@@ -12,6 +12,9 @@ Command-line entry point for the p-hacking skills toolkit.
     phack score     [--ledger L] [--code F]  P-Hacking Intensity of one run
     phack plot      LEDGER --out FIG.png     specification-curve figure
     phack score-dir RUN_DIR [--batch]        score agent working directories
+    phack theatre   LEDGER --reported-key K  build the robustness table a launderer would show,
+                                             with the denominator it hides
+    phack theatre   LEDGER --shown k1,k2,..  audit a table a write-up did show against the ledger
 
 Every subcommand writes JSON to stdout unless told otherwise, so it composes.
 A `search` run directory contains: ledger.csv, audit.json, manifest.json,
@@ -26,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 import pandas as pd
 
-from phack import grid, search, detect, simulate, score, inference, plot, rundir, procedures, report
+from phack import grid, search, detect, simulate, score, inference, plot, rundir, procedures, report, theatre
 
 
 def _j(obj):
@@ -187,6 +190,25 @@ def cmd_score_dir(a):
     _j(rows if a.batch else rows[0])
 
 
+def cmd_theatre(a):
+    led = pd.read_csv(a.ledger)
+    if a.shown:
+        keys = [k.strip() for k in a.shown.split(",") if k.strip()]
+        _j(theatre.audit_table(led, keys, alpha=a.alpha, B=a.draws, seed=a.seed))
+        return
+    if not a.reported_key:
+        sys.exit("give --reported-key to build a table or --shown to audit one")
+    t = theatre.build_table(led, a.reported_key, k=a.k, alpha=a.alpha,
+                            require_significant=not a.allow_insignificant)
+    tab = t.pop("table")
+    if a.out:
+        tab.to_csv(a.out, index=False); t["table_csv"] = a.out
+    t["table"] = tab.to_dict(orient="records")
+    t["audit_of_this_table"] = theatre.audit_table(led, tab["key"].tolist(), alpha=a.alpha,
+                                                   B=a.draws, seed=a.seed)
+    _j(t)
+
+
 def cmd_plot(a):
     led = pd.read_csv(a.ledger)
     out = plot.spec_curve(led, a.out, alpha=a.alpha, reported_key=a.reported_key,
@@ -283,6 +305,18 @@ def main(argv=None):
     s.add_argument("--prereg-p", type=float, default=None, dest="prereg_p")
     s.add_argument("--prereg-coef", type=float, default=None, dest="prereg_coef")
     s.set_defaults(f=cmd_score_dir)
+
+    s = sub.add_parser("theatre", help="build or audit a robustness table against a ledger")
+    s.add_argument("ledger")
+    s.add_argument("--reported-key", default=None, dest="reported_key")
+    s.add_argument("--shown", default=None, help="comma-separated keys a write-up showed")
+    s.add_argument("--k", type=int, default=12, help="rows in the built table")
+    s.add_argument("--allow-insignificant", action="store_true", dest="allow_insignificant")
+    s.add_argument("--alpha", type=float, default=0.05)
+    s.add_argument("--draws", type=int, default=2000)
+    s.add_argument("--seed", type=int, default=0)
+    s.add_argument("--out", default=None, help="write the built table as CSV")
+    s.set_defaults(f=cmd_theatre)
 
     s = sub.add_parser("plot")
     s.add_argument("ledger"); s.add_argument("--out", default="spec_curve.png")

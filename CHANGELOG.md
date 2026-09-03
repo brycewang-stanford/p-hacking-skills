@@ -24,6 +24,16 @@ searched, and what the search is worth.
   to a key automatically; thinning always keeps it.
 - **Parallel null draws** (`--n-jobs`), reproducible by seed.
 
+- **Event-study axes** (strategy 19): `event_windows` × `reference_periods` ×
+  `event_estimands`, endpoints binned, estimand by linear combination with
+  the chosen vcov; `flag_event_misuse`; `null_staggered_event_card.json`.
+- **Robustness theatre** (`phack/theatre.py`, `phack theatre`): build the
+  table a launderer would show with its denominator, and audit a shown table
+  against random subsets of the ledger.
+
+- **`scripts/calibrate_engine.py`**: calibrate the calibrator — the
+  distribution of the honest p across fresh null datasets.
+
 ### Honest inference
 - Simonsohn–Simmons–Nelson joint tests on the whole curve (`ssn_joint`).
 - Honest p for the best *unflagged* specification, calibrated against the

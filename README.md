@@ -71,10 +71,11 @@ A **design card** (JSON) declares one axis per researcher degree of freedom and 
 |---|---|---|
 | OLS / RCT | weighted OLS, multi-way FE absorption, HC0–3 / cluster / two-way | controls (power set), FE, SE doctrine, transforms, discretisation, outliers (outcome / treatment / residual basis), imputation, windows, weights, lags |
 | DiD | TWFE, Gardner two-stage, stacked clean-control | as above, plus estimator and comparison group (all / drop never-treated / drop always-treated) |
+| event study | TWFE with binned relative-time dummies, estimand by linear combination | event window, reference period, estimand (average post / a lag / the pre-trend placebo) |
 | RDD | local polynomial, kernel-weighted | rule-of-thumb and Imbens–Kalyanaraman pilots × multipliers, kernel, polynomial, donut, inference mode (conventional / bias-corrected / CCT robust) |
 | IV | 2SLS, LIML | instrument subsets, estimator, controls, FE; first-stage F and Anderson–Rubin p on every row |
 
-Four ground-truth datasets ship with a true effect of exactly zero: `null_panel` (25,920 specs), `null_staggered` (3,456), `null_rdd` (20,736), `null_iv` (672).
+Four ground-truth datasets ship with a true effect of exactly zero, and five cards: `null_panel` (25,920 specs), `null_staggered` (3,456 static; 1,200 event-study), `null_rdd` (20,736), `null_iv` (672).
 
 ### It walks it the way a p-hacker does
 
@@ -97,6 +98,10 @@ Twenty-nine regressions from a defensible starting point, each one citable, turn
 
 Pathology flags keep the citable-but-wrong corners in the ledger, flagged: non-PSD two-way variance, few clusters, weak instruments, Wald / Anderson–Rubin disagreement, thin RDD sides, bias-corrected-without-robust-SE, single-stack designs, extreme-group splits. `best_unflagged_spec` is what a careful analyst who refused those corners would have found, calibrated against the unflagged part of the grid. In the figure above this is the difference between an honest p of 0.02 and 0.38: null calibration alone does not fully protect against a numerically broken specification whose statistics are heavy-tailed; the flag does.
 
+### It builds the robustness table a launderer would show — and audits one
+
+`phack theatre LEDGER --reported-key KEY` selects the reported specification and its nearest agreeing neighbours, which is exactly how a twenty-row all-significant robustness table comes to exist, and attaches the denominator the table hides. `phack theatre LEDGER --shown k1,k2,...` audits a table a write-up did show against random subsets of the ledger it came from. On the null staggered panel a ten-row table around the best specification is significant in every row; a random ten-row table has a median of zero, and the probability of drawing one that favourable is 0.0005.
+
 ### It leaves nothing to type by hand
 
 `manifest.json` records the sha1 of card and data, the grid and any thinning, the null scheme, draws and seed, the procedure and the engine version. `report.md` is generated from the audit — the paragraph a paper should contain, and one that cannot be reduced to its sixth sentence because the sixth sentence is not produced without the others.
@@ -111,7 +116,7 @@ Pathology flags keep the citable-but-wrong corners in the ledger, flagged: non-P
 | **red** | `03-specification-search` | Instrumented walk with directional selection, null calibration, Romano–Wolf, joint tests, distance-from-PAP, attribution, flags, report |
 | | `09-search-procedures` | Sequential search procedures replayed on null data: the false-positive rate of a *way of searching* |
 | | `04-framing-attacks` | The seven-rung framing ladder from neutral to split-role; the probe harness |
-| | `05-narrative-laundering` | How a searched result gets written up, and the questions that expose each move |
+| | `05-narrative-laundering` | How a searched result gets written up, the questions that expose each move, and the robustness-theatre builder / auditor |
 | **blue** | `06-phack-detection` | p-curve battery: binomial / Fisher / Stouffer / LCM monotonicity (Elliott, Kudrin & Wüthrich 2022), bunching against a smooth counterfactual, p-curve power |
 | | `07-phack-immunization` | Cards as pre-analysis plans, split samples, blinding; after-the-fact repair via curve reporting, joint tests, stepdown correction, full-procedure calibration |
 | **eval** | `08-eval-harness` | 2 framings × 7 nudges × 4 designs; PHI scoring; reference walks; calibration controls |
@@ -126,6 +131,7 @@ python scripts/phack_cli.py search    DATA CARD --direction + --null-draws 200 -
 python scripts/phack_cli.py search    DATA CARD --procedure greedy --stop-at-alpha --null-draws 200
 python scripts/phack_cli.py audit     LEDGER --null-dir RUN_DIR
 python scripts/phack_cli.py report    RUN_DIR --stdout
+python scripts/phack_cli.py theatre   LEDGER --reported-key KEY --k 12     # or --shown k1,k2,...
 python scripts/phack_cli.py plot      LEDGER --out fig.png
 python scripts/phack_cli.py detect    STATS --pcol p --zcol z
 python scripts/phack_cli.py simulate  --strategy 07_transformation
@@ -171,6 +177,7 @@ The correct response to the uncertainty-bounds framing is **not** refusal: an up
 ## Limitations, stated plainly
 
 - **Null calibration is only as good as the null scheme.** A panel calibrated with i.i.d. permutation gets a reference distribution that is far too tight. The engine ships the right schemes and permutes whole treatment paths for panels; choosing one is still a judgement.
+- **The honest p is checked, not assumed.** `scripts/calibrate_engine.py` re-runs the whole pipeline on fresh null datasets: on 12 staggered panels the honest p was below 0.05 on none (median 0.76, KS uniformity p = 0.10) while the raw best p was below 0.05 on seven. Run it after touching a null scheme or an estimator.
 - **Heavy-tailed artefacts need flags, not just draws.** A numerically broken specification (non-PSD variance, a bias-corrected estimate with the wrong SE) has t-statistics whose tail 200 null draws cannot characterise. Read `best_unflagged_spec` and `min_p_test_unflagged` alongside the headline.
 - **RDD bandwidths are rule-of-thumb and Imbens–Kalyanaraman**, not `rdrobust`'s CCT-optimal choice; the robust inference mode is CCT with b = h. That is deliberate — the grid walks the citable range — but it is not a replacement for `rdrobust` in a real analysis.
 - **The DiD menu is TWFE, two-stage and stacked.** Callaway–Sant'Anna, Sun–Abraham and imputation with full inference are named in the taxonomy and not implemented; adding one is a `did_estimators` entry and a builder in `grid.py`.

@@ -46,6 +46,12 @@ def _fit_spec(df, spec, card):
         return core.fit_2sls(built["y"], built["d"], built["Z"], controls=built["controls"],
                              vcov=built["vcov"], cluster=built["cluster"],
                              estimator=built["estimator"], weights=built["weights"])
+    if built["design"] == "lincom":
+        r = core.fit_lincom(built["y"], built["X"], built["a"], vcov=built["vcov"],
+                            cluster=built["cluster"], k_absorbed=built["k_absorbed"],
+                            weights=built["weights"])
+        r["n_treated_cohorts"] = built["n_treated_cohorts"]
+        return r
     r = core.fit_ols(built["y"], built["X"], vcov=built["vcov"], cluster=built["cluster"],
                      k_absorbed=built["k_absorbed"], target=1 if built["has_const"] else 0,
                      weights=built["weights"])
@@ -86,6 +92,8 @@ def _spec_record(s: grid.Spec, order: int) -> dict:
         "imputation": s.imputation, "subsample": s.subsample,
         "weight": s.weight, "lag": s.lag,
         "did_estimator": s.did_estimator, "comparison_group": s.comparison_group,
+        "ev_window": (f"{s.ev_window[0]}/{s.ev_window[1]}" if s.ev_window else None),
+        "ev_ref": s.ev_ref, "ev_estimand": s.ev_estimand,
         "bandwidth": (s.bandwidth[1] if isinstance(s.bandwidth, tuple) else s.bandwidth),
         "bw_multiplier": (None if s.bandwidth is None or isinstance(s.bandwidth, tuple) else s.bandwidth),
         "bw_selector": s.bw_selector if s.bandwidth is not None else None,
@@ -174,6 +182,11 @@ def flag_pathologies(ledger: pd.DataFrame, card: dict, alpha=0.05) -> pd.DataFra
         led["flag_bc_without_robust_se"] = ok & led["rdd_inference"].eq("bias_corrected")
     if "n_stacks" in led:
         led["flag_single_stack"] = ok & (led["n_stacks"].fillna(np.inf) < 2)
+    if "ev_estimand" in led and led["ev_estimand"].notna().any():
+        # reporting the pre-trend as if it were the effect, or a reference period
+        # inside the post window, is not a specification -- it is a mistake
+        led["flag_event_misuse"] = ok & (led["ev_estimand"].eq("avg_pre") |
+                                         (led["ev_ref"].fillna(-1) >= 0))
     led["n_flags"] = led.filter(like="flag_").sum(axis=1)
     return led
 
@@ -556,7 +569,7 @@ def axis_influence(ok: pd.DataFrame, alpha=0.05, direction=None, top_levels=8) -
     cols = [c for c in ["outcome", "controls", "n_controls", "fe", "vcov", "cluster",
                         "y_transform", "d_transform", "outlier_rule", "imputation",
                         "subsample", "weight", "lag", "did_estimator", "comparison_group",
-                        "bw_multiplier", "bw_selector", "kernel", "poly", "donut", "rdd_inference",
+                        "ev_window", "ev_ref", "ev_estimand", "bw_multiplier", "bw_selector", "kernel", "poly", "donut", "rdd_inference",
                         "instruments", "iv_estimator"] if c in ok]
     for c in cols:
         vals = ok[c].astype(str)
