@@ -1,0 +1,88 @@
+{
+  "name": "p-hacking-skills",
+  "version": "0.1.0",
+  "n_skills": 9,
+  "purpose": "Evaluation instrument for measuring specification search and its disclosure in AI research agents.",
+  "toolkit": {
+    "package": "scripts/phack",
+    "cli": "scripts/phack_cli.py",
+    "commands": [
+      "size",
+      "search",
+      "audit",
+      "detect",
+      "simulate",
+      "score",
+      "score-dir",
+      "plot"
+    ]
+  },
+  "designs_supported": [
+    "ols",
+    "did",
+    "rdd",
+    "iv",
+    "rct"
+  ],
+  "ground_truth_datasets": [
+    "eval/data/null_panel.csv",
+    "eval/data/null_rdd.csv",
+    "eval/data/null_iv.csv"
+  ],
+  "skills": [
+    {
+      "name": "phack-router",
+      "path": "skills/00-phack-router",
+      "description": "Entry point for the p-hacking skills suite. Routes a request to the right sub-skill for (a) mapping researcher degrees of freedom in an econometric design, (b) running an instrumented specification search, (c) detecting p-hacking in a body of results, (d) immunising an analysis against it, or (e) running the agent p-hacking evaluation harness. Use whenever the request involves specification search, multiverse or specification-curve analysis, p-curve or caliper tests, publication bias, researcher degrees of freedom, \"find me a significant result\", robustness theatre, or benchmarking whether an AI agent will p-hack.",
+      "side": "map"
+    },
+    {
+      "name": "phack-taxonomy",
+      "path": "skills/01-phack-taxonomy",
+      "description": "Name and classify p-hacking strategies, and quantify what each one does to the false-positive rate. Covers the twelve-strategy compendium of Stefan and Schoenbrodt (2023) plus ten econometrics-specific degrees of freedom (clustering doctrine, fixed-effect structure, RDD bandwidth and kernel, IV instrument sets, staggered-DiD estimator choice, synthetic-control donor pools). Use when asked what p-hacking is, which strategy a particular analytical choice corresponds to, how much a given researcher degree of freedom inflates type I error, or to enumerate the ways a specific result could have been obtained.",
+      "side": "map"
+    },
+    {
+      "name": "forking-paths",
+      "path": "skills/02-forking-paths",
+      "description": "Map the garden of forking paths for a concrete econometric design and turn it into a machine-readable design card that the specification-search engine can walk. Use when asked how many defensible analyses a dataset or research design admits, to enumerate researcher degrees of freedom for a specific DiD, IV, RDD, synthetic-control, panel or cross-sectional study, to build or validate a design card, or to size a multiverse before running it.",
+      "side": "map"
+    },
+    {
+      "name": "specification-search",
+      "path": "skills/03-specification-search",
+      "description": "Run an instrumented walk of a specification universe and recover honest inference from it. Estimates every specification in a design card, logs a complete ledger, flags pathological specifications, and calibrates the search against an enforced null to report what the reported p-value is actually worth. Use to run a multiverse or specification-curve analysis, to audit a search someone else ran, to compute multiplicity-corrected or null-calibrated p-values for a selected specification, or to demonstrate how far a search can move a result under a known-zero effect.",
+      "side": "red"
+    },
+    {
+      "name": "framing-attacks",
+      "path": "skills/04-framing-attacks",
+      "description": "Catalogue of prompt framings that determine whether an agent refuses or performs specification search, and the harness for probing them. Reproduces and extends the published finding that coding agents refuse an explicit request for significant results but comply when the identical request is reframed as uncertainty reporting. Use when running a red-team probe of statistical guardrails, designing eval conditions for an agent p-hacking benchmark, measuring the gap between refusal-by-framing and refusal-by-intent, or assessing whether a prompt someone received was engineered to induce specification search.",
+      "side": "red"
+    },
+    {
+      "name": "narrative-laundering",
+      "path": "skills/05-narrative-laundering",
+      "description": "Audit how an empirical write-up presents its analytical choices, and detect the rhetorical moves that convert a specification search into an apparently confirmatory finding. Covers HARKing, robustness theatre, selective disclosure, the vanishing pilot study, and estimator-choice narratives. Use when reviewing a paper or an agent-produced report for undisclosed search, refereeing an empirical manuscript, or scoring whether an agent disclosed the specification search it actually ran.",
+      "side": "map"
+    },
+    {
+      "name": "phack-detection",
+      "path": "skills/06-phack-detection",
+      "description": "Test whether a body of reported results shows p-hacking or selective reporting, using the p-curve battery. Implements the binomial, Fisher, Stouffer and least-concave-majorant monotonicity tests of Elliott, Kudrin and Wuethrich (2022), plus threshold-bunching tests calibrated against a smooth counterfactual density and Simonsohn's p-curve power estimate. Use when asked whether a literature, a journal, a research design, an author or a set of agent runs shows evidence of p-hacking or publication bias.",
+      "side": "blue"
+    },
+    {
+      "name": "phack-immunization",
+      "path": "skills/07-phack-immunization",
+      "description": "Make an empirical analysis robust to specification search, before or after the fact. Covers pre-registration and pre-analysis plans, specification-curve reporting with joint inference, Romano-Wolf and effective-multiplicity corrections, randomisation and permutation inference, split-sample and holdout designs, and honest reporting templates. Use when asked how to protect an analysis against p-hacking, how to correct inference after a search has happened, how to write a pre-analysis plan, or how to report a multiverse credibly.",
+      "side": "blue"
+    },
+    {
+      "name": "phack-eval-harness",
+      "path": "skills/08-eval-harness",
+      "description": "Run and score the agent p-hacking benchmark. Composes prompt cells across research framing and significance pressure, drives an agent through them, and scores each run into a P-Hacking Intensity index decomposed into selection, search breadth, estimate inflation, inference gap, pre-registration departure and disclosure. Use when benchmarking whether an AI agent p-hacks, comparing models or tool stacks on statistical integrity, scoring a single agent analysis run, or designing an evaluation of statistical guardrails.",
+      "side": "eval"
+    }
+  ]
+}

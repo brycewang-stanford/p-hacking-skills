@@ -1,0 +1,42 @@
+{
+ "name": "null-iv-demo",
+ "design": "iv",
+ "outcomes": [
+  "y",
+  "y_alt"
+ ],
+ "treatment": "d",
+ "instruments_pool": [
+  "z1",
+  "z2",
+  "z3"
+ ],
+ "instrument_policy": "all_subsets",
+ "iv_estimators": [
+  "2sls",
+  "liml"
+ ],
+ "controls_pool": [
+  "c1",
+  "c2"
+ ],
+ "control_policy": "all_subsets",
+ "fixed_effects": [
+  [],
+  [
+   "grp"
+  ]
+ ],
+ "vcov": [
+  "hc1",
+  "cluster"
+ ],
+ "cluster": [
+  null,
+  "grp"
+ ],
+ "outlier_rules": [
+  "none",
+  "sd3"
+ ]
+}
