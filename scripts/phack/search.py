@@ -107,8 +107,14 @@ def _spec_record(s: grid.Spec, order: int) -> dict:
     }
 
 
+def _run_chunk(args):
+    df, card, specs = args
+    fit = make_fitter(df, card)
+    return [{k: v for k, v in fit(s).items() if not isinstance(v, np.ndarray)} for s in specs]
+
+
 def run(df: pd.DataFrame, card: dict, *, specs=None, progress=False,
-        procedure=None, seed=0, alpha=0.05) -> pd.DataFrame:
+        procedure=None, seed=0, alpha=0.05, n_jobs=1) -> pd.DataFrame:
     """Fit every specification -- or walk the grid with a `procedure` -- and
     return the ledger. Failures are recorded, never silently dropped.
 
@@ -131,12 +137,24 @@ def run(df: pd.DataFrame, card: dict, *, specs=None, progress=False,
     else:
         visited = specs
         reported_key = None
-    for order, s in enumerate(visited):
-        rec = _spec_record(s, order)
-        rec.update({k: v for k, v in fit(s).items() if not isinstance(v, np.ndarray)})
-        rows.append(rec)
-        if progress and len(rows) % 250 == 0:
-            print(f"  {len(rows)}/{len(visited)} specs  ({time.time()-t0:.1f}s)", flush=True)
+    n_jobs = max(1, int(n_jobs or 1))
+    if procedure is None and n_jobs > 1 and len(visited) >= 4 * n_jobs:
+        chunks = [visited[i::n_jobs] for i in range(n_jobs)]
+        with ProcessPoolExecutor(max_workers=n_jobs) as ex:
+            parts = list(ex.map(_run_chunk, [(df, card, c) for c in chunks]))
+        results = {}
+        for c, part in zip(chunks, parts):
+            for s, r in zip(c, part):
+                results[s.key()] = r
+        for order, s in enumerate(visited):
+            rec = _spec_record(s, order); rec.update(results[s.key()]); rows.append(rec)
+    else:
+        for order, s in enumerate(visited):
+            rec = _spec_record(s, order)
+            rec.update({k: v for k, v in fit(s).items() if not isinstance(v, np.ndarray)})
+            rows.append(rec)
+            if progress and len(rows) % 250 == 0:
+                print(f"  {len(rows)}/{len(visited)} specs  ({time.time()-t0:.1f}s)", flush=True)
     led = pd.DataFrame(rows)
     if led.empty:
         return led

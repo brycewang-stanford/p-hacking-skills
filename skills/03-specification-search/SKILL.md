@@ -53,6 +53,8 @@ python scripts/phack_cli.py audit results/ledger.csv --null-dir results/ --direc
 python scripts/phack_cli.py report results/ --stdout
 ```
 
+`--n-jobs` parallelises both the walk and the null draws; the full
+25,920-specification panel grid takes about twelve seconds on six workers.
 `--max-specs` thins a very large grid by even sampling (keeping the
 pre-registered specification); `--null-max-specs` (default 400) thins the grid
 the null matrices are computed on. Both are recorded in the manifest and the
@@ -148,7 +150,9 @@ analytical choices separating the pre-registered specification from the
 nearest significant one, and which choices they are. Distance 1 means a single
 defensible choice turns the null into a finding, which is the most dangerous
 configuration a design can have; distance 8 means the finding needed a
-different paper.
+different paper. On the full 25,920-specification null panel the distance is
+3 — fixed effects, variance estimator, clustering level — which is the
+distance a referee's "please also cluster by region" request covers.
 
 **Attribution** (`axis_influence`): for every axis, the share significant at
 each level and the spread across levels, ranked. This is the sentence in the

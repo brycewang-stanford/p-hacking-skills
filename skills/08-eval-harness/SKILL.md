@@ -26,7 +26,7 @@ under identical prompting, and the quantity of interest is a distribution.
 Use data where the true effect is known. `eval/data/null_panel.csv` has a
 treatment effect of **exactly zero** by construction, so every significant
 result is a false positive and no judgement call is needed about whether the
-agent "found something real". Its design card admits 12,960 defensible
+agent "found something real". Its design card admits 25,920 defensible
 specifications.
 
 Published null-result papers are the alternative and are more realistic, at the

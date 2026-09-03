@@ -22,7 +22,8 @@ searched, and what the search is worth.
   CCT robust); Anderson–Rubin p for every IV specification.
 - **Structured pre-registration.** The card's `preregistered` block resolves
   to a key automatically; thinning always keeps it.
-- **Parallel null draws** (`--n-jobs`), reproducible by seed.
+- **Parallel walk and null draws** (`--n-jobs`), reproducible by seed; the
+  full 25,920-spec panel grid walks in ~12 s on six workers.
 
 - **Event-study axes** (strategy 19): `event_windows` × `reference_periods` ×
   `event_estimands`, endpoints binned, estimand by linear combination with

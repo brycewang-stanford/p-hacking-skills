@@ -75,6 +75,8 @@ A **design card** (JSON) declares one axis per researcher degree of freedom and 
 | RDD | local polynomial, kernel-weighted | rule-of-thumb and Imbens–Kalyanaraman pilots × multipliers, kernel, polynomial, donut, inference mode (conventional / bias-corrected / CCT robust) |
 | IV | 2SLS, LIML | instrument subsets, estimator, controls, FE; first-stage F and Anderson–Rubin p on every row |
 
+The full 25,920-specification panel grid walks in about twelve seconds on six workers. On that grid, 386 specifications are significant at 5%, and the nearest one to the pre-registered analysis differs from it in **three choices** — the fixed-effect structure, the variance estimator and the clustering level — none of which touches the data.
+
 Four ground-truth datasets ship with a true effect of exactly zero, and five cards: `null_panel` (25,920 specs), `null_staggered` (3,456 static; 1,200 event-study), `null_rdd` (20,736), `null_iv` (672).
 
 ### It walks it the way a p-hacker does

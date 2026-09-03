@@ -70,8 +70,8 @@ def cmd_search(a):
     if proc is not None and a.start_key is None and prereg and a.procedure in ("greedy", "hill_climb"):
         proc.start = prereg               # a search starts where an honest analysis would
     led = search.flag_pathologies(search.run(df, card, specs=specs, progress=a.progress,
-                                            procedure=proc, seed=a.seed, alpha=a.alpha), card,
-                                  alpha=a.alpha)
+                                            procedure=proc, seed=a.seed, alpha=a.alpha,
+                                            n_jobs=a.n_jobs), card, alpha=a.alpha)
     os.makedirs(a.out, exist_ok=True)
     led.to_csv(os.path.join(a.out, "ledger.csv"), index=False)
     if "walk" in led.attrs:
@@ -236,7 +236,7 @@ def main(argv=None):
                             "cluster_permute", "gaussian"])
     s.add_argument("--null-max-specs", type=int, default=400, dest="null_max_specs")
     s.add_argument("--n-jobs", type=int, default=1, dest="n_jobs",
-                   help="parallel workers for the null draws")
+                   help="parallel workers for the walk and the null draws")
     s.add_argument("--prereg-key", default=None, dest="prereg_key",
                    help="key of the pre-registered spec (else resolved from the card's 'preregistered' block)")
     s.add_argument("--procedure", default=None, choices=list(procedures.PROCEDURES),

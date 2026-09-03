@@ -106,3 +106,13 @@ def test_nearest_significant_distance_one():
     ns = search.nearest_significant(led, pre)
     assert ns["distance"] == 1 and ns["axes_changed"] == ["vcov"]
     assert ns["n_significant_within_1_change"] == 1
+
+
+def test_parallel_run_matches_sequential():
+    df = pd.read_csv(os.path.join(ROOT, "null_iv.csv"))
+    card = grid.load_card(os.path.join(ROOT, "null_iv_card.json"))
+    specs = grid.enumerate_specs(card)[::8]
+    a = search.run(df, card, specs=specs)
+    b = search.run(df, card, specs=specs, n_jobs=3)
+    assert a["key"].tolist() == b["key"].tolist()
+    assert np.allclose(a["coef"], b["coef"], equal_nan=True) and np.allclose(a["p"], b["p"], equal_nan=True)
