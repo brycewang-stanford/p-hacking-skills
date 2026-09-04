@@ -1,11 +1,11 @@
 cff-version: 1.2.0
-title: "p-hacking-skills: an instrumented specification-search engine for econometric designs"
+title: "p-hacking-skills: a specification-search audit and p-hacking benchmark for econometric designs"
 message: "If you use this software in research, please cite it."
 type: software
 authors:
   - family-names: Wang
     given-names: Bryce
-version: 0.4.0
+version: 0.4.1
 date-released: 2026-09-04
 license: MIT
 repository-code: "https://github.com/brycewang-stanford/p-hacking-skills"

@@ -1,8 +1,8 @@
 {
   "name": "p-hacking-skills",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "n_skills": 11,
-  "purpose": "Evaluation instrument for measuring specification search and its disclosure in AI research agents.",
+  "purpose": "Specification-search audit and p-hacking benchmark for econometric designs; an evaluation instrument for AI research agents. Research and teaching use only.",
   "toolkit": {
     "package": "scripts/phack",
     "cli": "scripts/phack_cli.py",

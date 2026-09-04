@@ -7,6 +7,19 @@ Elliott, Kudrin & Wuethrich (2022, Econometrica) -- non-increasing density,
 continuity at the threshold -- plus the classical p-curve tools of Simonsohn,
 Nelson & Simmons and the caliper test of Gerber & Malhotra.
 
+Also the threshold tests of Adda, Decker & Ottaviani (2020, PNAS), who ran
+them on 12,621 primary-outcome p-values from ClinicalTrials.gov: a local
+polynomial density-jump test at z = 1.96 (Cattaneo, Jansson & Ma 2020), the
+phase II vs phase III comparison of the share significant, and the
+selective-continuation decomposition -- how much of a later stage's excess
+significance a continuation rule estimated on the earlier stage explains.
+
+Three signatures at the threshold, and they are not the same thing:
+  spike just past the line       -> individual results pushed across (p-hacking)
+  level shift, no spike          -> results below the line missing (selective reporting)
+  neither, but a later stage has -> selection between stages (continuation),
+  more significant results          which no threshold test can see
+
 Every test here is a test of the *distribution across studies*. None of them
 can convict a single paper; that is a property of the method, not a limitation
 of the implementation, and the report says so.
@@ -17,7 +30,9 @@ import numpy as np
 from scipy import stats
 
 __all__ = ["binomial_test", "fisher_test", "stouffer_test", "lcm_test",
-           "discontinuity_test", "caliper_test", "pcurve_power", "report"]
+           "discontinuity_test", "caliper_test", "pcurve_power", "report",
+           "density_jump_test", "phase_shift_test", "continuation_decomposition",
+           "phase_report"]
 
 
 def _significant(p, alpha):
@@ -253,6 +268,272 @@ def pcurve_power(pvals, alpha=0.05) -> dict:
             "reads": "power near alpha => the significant findings carry no evidential value"}
 
 
+# --------------------------------------------------------------------------
+# 8. Density jump at the threshold. The local polynomial density estimator of
+#    Cattaneo, Jansson & Ma (2020): on each side of the cutoff, regress the
+#    empirical CDF on a polynomial in (x - c) with triangular kernel weights;
+#    the density at c is the fitted slope. No pre-binning, so no bin-alignment
+#    knob. This is the test Adda, Decker & Ottaviani (2020) run on registered
+#    trial results, and it answers a different question from the caliper: not
+#    "is there a spike just past the line" but "is the density on the two
+#    sides of the line the same". A jump with no spike is what strategic
+#    non-reporting of results below the line looks like.
+# --------------------------------------------------------------------------
+
+def _lp_density_side(x, F, c, h, side, poly=2):
+    """Local polynomial density at c from one side. Returns (f, n_used)."""
+    if side > 0:
+        m = (x >= c) & (x <= c + h)
+    else:
+        m = (x < c) & (x >= c - h)
+    n = int(m.sum())
+    if n < poly + 2:
+        return np.nan, n
+    u = (x[m] - c) / h
+    w = np.sqrt(1.0 - np.abs(u))                      # triangular kernel, sqrt for WLS
+    d = x[m] - c
+    Z = np.column_stack([d ** k for k in range(poly + 1)])
+    beta, *_ = np.linalg.lstsq(Z * w[:, None], F[m] * w, rcond=None)
+    return float(beta[1]), n
+
+
+def _default_h(x):
+    n = x.size
+    return float(np.clip(2.0 * np.std(x) * n ** (-0.2), 0.4, 1.5))
+
+
+def density_jump_test(zstats, center=1.96, h=None, poly=2, B=300, seed=0, min_side=30) -> dict:
+    """Is the density of |z| continuous at the significance threshold?
+
+    `jump` = f(c+) - f(c-), with a bootstrap standard error. `p_value` is
+    one-sided against an UPWARD jump (more mass just past the line than just
+    before it), which is the direction both p-hacking and selective reporting
+    predict; `p_two_sided` is also given. Bandwidth defaults to
+    2 sd(|z|) n^(-1/5), clipped to [0.4, 1.5]; pass `h` to check sensitivity.
+    """
+    x = np.abs(np.asarray(zstats, float))
+    x = x[np.isfinite(x)]
+    n = x.size
+    out = {"test": "density_jump", "center": center, "n": int(n)}
+    if n < 2 * min_side:
+        return {**out, "note": "too few statistics for a density estimate"}
+    h = float(h) if h is not None else _default_h(x)
+    out["h"] = round(h, 4)
+
+    def both(v):
+        F = stats.rankdata(v, method="average") / v.size
+        fl, nl = _lp_density_side(v, F, center, h, -1, poly)
+        fr, nr = _lp_density_side(v, F, center, h, +1, poly)
+        return fl, fr, nl, nr
+
+    fl, fr, nl, nr = both(x)
+    out.update({"n_left": nl, "n_right": nr})
+    if nl < min_side or nr < min_side or not (np.isfinite(fl) and np.isfinite(fr)):
+        return {**out, "note": f"fewer than {min_side} statistics within h on one side"}
+    rng = np.random.default_rng(seed)
+    boots = []
+    for _ in range(B):
+        v = x[rng.integers(0, n, n)]
+        bl, br, _, _ = both(v)
+        if np.isfinite(bl) and np.isfinite(br):
+            boots.append(br - bl)
+    boots = np.asarray(boots)
+    if boots.size < 50:
+        return {**out, "note": "bootstrap failed on most draws"}
+    se = float(boots.std(ddof=1))
+    jump = float(fr - fl)
+    T = jump / se if se > 0 else np.nan
+    out.update({
+        "f_left": round(fl, 5), "f_right": round(fr, 5), "jump": round(jump, 5),
+        "log_ratio": round(float(np.log(max(fr, 1e-9) / max(fl, 1e-9))), 4),
+        "se": round(se, 5), "z": round(float(T), 3),
+        "p_value": float(stats.norm.sf(T)),
+        "p_two_sided": float(2 * stats.norm.sf(abs(T))),
+        "reads": ("upward jump => the density of |z| is higher just past the line than just before it: "
+                  "results below the line are missing (selective reporting) or were pushed across "
+                  "(p-hacking); read together with the caliper spike test"),
+    })
+    return out
+
+
+# --------------------------------------------------------------------------
+# 9. Across stages. Adda, Decker & Ottaviani compare phase II with phase III:
+#    the share of significant results rises from 45.7% to 70.6% for industry
+#    sponsors with NO discontinuity at 1.96 in phase II -- the distribution
+#    shifts smoothly, because firms continue to phase III only after promising
+#    phase II results. Selection between stages is invisible to every
+#    threshold test above, so it needs its own comparison.
+# --------------------------------------------------------------------------
+
+def phase_shift_test(z_early, z_late, threshold=1.96) -> dict:
+    """Share significant in a later stage against an earlier one, with a
+    two-proportion test and a one-sided Kolmogorov-Smirnov test that the
+    later stage's |z| stochastically dominates the earlier one's."""
+    a = np.abs(np.asarray(z_early, float)); a = a[np.isfinite(a)]
+    b = np.abs(np.asarray(z_late, float)); b = b[np.isfinite(b)]
+    out = {"test": "phase_shift", "threshold": threshold, "n_early": int(a.size), "n_late": int(b.size)}
+    if a.size < 20 or b.size < 20:
+        return {**out, "note": "too few results in a stage"}
+    s1, s2 = float(np.mean(a > threshold)), float(np.mean(b > threshold))
+    pool = (np.sum(a > threshold) + np.sum(b > threshold)) / (a.size + b.size)
+    se = float(np.sqrt(pool * (1 - pool) * (1 / a.size + 1 / b.size)))
+    zst = (s2 - s1) / se if se > 0 else np.nan
+    # scipy: alternative='less' tests F_data1(x) < F_data2(x) somewhere, i.e.
+    # data1 (the later stage) is stochastically LARGER
+    ks = stats.ks_2samp(b, a, alternative="less")
+    out.update({
+        "share_significant_early": round(s1, 4), "share_significant_late": round(s2, 4),
+        "difference_pp": round(100 * (s2 - s1), 2), "z": round(float(zst), 3),
+        "p_value": float(stats.norm.sf(zst)) if np.isfinite(zst) else np.nan,
+        "ks_dominance_stat": round(float(ks.statistic), 4), "ks_dominance_p": float(ks.pvalue),
+        "reads": ("small p_value => the later stage has more significant results than the earlier one. "
+                  "That is selection or manipulation between stages, not evidence of either on its own: "
+                  "run continuation_decomposition to see how much a continuation rule explains"),
+    })
+    return out
+
+
+def _logit_fit(X, y, ridge=1e-8, iters=60):
+    X = np.asarray(X, float); y = np.asarray(y, float)
+    beta = np.zeros(X.shape[1])
+    H = None
+    for _ in range(iters):
+        p = 1 / (1 + np.exp(-np.clip(X @ beta, -30, 30)))
+        W = np.clip(p * (1 - p), 1e-10, None)
+        H = X.T @ (X * W[:, None]) + ridge * np.eye(X.shape[1])
+        step = np.linalg.solve(H, X.T @ (y - p))
+        beta = beta + step
+        if np.max(np.abs(step)) < 1e-9:
+            break
+    return beta, np.linalg.inv(H)
+
+
+def continuation_decomposition(z_early, continued, z_late, threshold=1.96,
+                               covariates=None, B=200, seed=0) -> dict:
+    """How much of a later stage's excess significance a continuation rule explains.
+
+    Adda, Decker & Ottaviani (2020), section "Selective continuation": fit
+    continuation ~ logistic(alpha + beta |z_early| + x'gamma) on the early-stage
+    results, reweight the early-stage distribution by the fitted continuation
+    probabilities, and compare the reweighted share significant with the
+    later stage's actual share. The part of (late - early) the reweighting
+    reproduces is *explained* by selection on early results; the remainder is
+    *unexplained* -- selective reporting, manipulation, or true improvement
+    between stages that the early result does not predict.
+
+    z_early and continued are aligned over early-stage projects; z_late holds
+    the later-stage results that were reported (any length). Standard errors
+    by bootstrap over projects.
+    """
+    z1 = np.abs(np.asarray(z_early, float))
+    c = np.asarray(continued, float)
+    m = np.isfinite(z1) & np.isfinite(c)
+    z1, c = z1[m], c[m]
+    Xc = None
+    if covariates is not None:
+        Xc = np.atleast_2d(np.asarray(covariates, float))
+        Xc = Xc.T if Xc.shape[0] != len(m) else Xc
+        Xc = Xc[m]
+    z2 = np.abs(np.asarray(z_late, float)); z2 = z2[np.isfinite(z2)]
+    out = {"test": "continuation_decomposition", "threshold": threshold,
+           "n_early": int(z1.size), "n_continued": int(c.sum()), "n_late": int(z2.size)}
+    if z1.size < 30 or z2.size < 20 or c.sum() < 10 or c.sum() > z1.size - 10:
+        return {**out, "note": "too few projects, or no variation in continuation"}
+
+    def design(z, X):
+        cols = [np.ones_like(z), z]
+        if X is not None:
+            cols.extend(X.T)
+        return np.column_stack(cols)
+
+    def decompose(z1_, c_, X_, z2_):
+        beta, cov = _logit_fit(design(z1_, X_), c_)
+        pi = 1 / (1 + np.exp(-np.clip(design(z1_, X_) @ beta, -30, 30)))
+        s1 = float(np.mean(z1_ > threshold)); s2 = float(np.mean(z2_ > threshold))
+        s_cf = float(np.sum(pi * (z1_ > threshold)) / np.sum(pi))
+        return beta, cov, pi, s1, s2, s_cf
+
+    beta, cov, pi, s1, s2, s_cf = decompose(z1, c, Xc, z2)
+    actual, explained, unexplained = s2 - s1, s_cf - s1, s2 - s_cf
+    rng = np.random.default_rng(seed)
+    bu, be = [], []
+    for _ in range(B):
+        i = rng.integers(0, z1.size, z1.size); j = rng.integers(0, z2.size, z2.size)
+        try:
+            _, _, _, b1, b2, bcf = decompose(z1[i], c[i], None if Xc is None else Xc[i], z2[j])
+        except np.linalg.LinAlgError:
+            continue
+        bu.append(b2 - bcf); be.append(bcf - b1)
+    bu, be = np.asarray(bu), np.asarray(be)
+    se_u = float(bu.std(ddof=1)) if bu.size > 20 else np.nan
+    zu = unexplained / se_u if se_u and se_u > 0 else np.nan
+    grid_z = [1.0, 1.96, 3.0]
+    out.update({
+        "logit": {"beta_z": round(float(beta[1]), 4), "se_z": round(float(np.sqrt(cov[1, 1])), 4),
+                  "p_z": float(2 * stats.norm.sf(abs(beta[1] / np.sqrt(cov[1, 1])))),
+                  "mean_continuation": round(float(pi.mean()), 4),
+                  "continuation_at_z": {str(g): round(float(1 / (1 + np.exp(-(beta[0] + beta[1] * g)))), 4)
+                                        for g in grid_z}},
+        "share_significant_early": round(s1, 4),
+        "share_significant_late": round(s2, 4),
+        "share_significant_counterfactual": round(s_cf, 4),
+        "difference_pp": round(100 * actual, 2),
+        "explained_pp": round(100 * explained, 2),
+        "unexplained_pp": round(100 * unexplained, 2),
+        "explained_share": (round(float(explained / actual), 3) if abs(actual) > 1e-9 else None),
+        "unexplained_se_pp": round(100 * se_u, 2) if np.isfinite(se_u) else None,
+        "unexplained_ci95_pp": ([round(100 * float(q), 2) for q in np.percentile(bu, [2.5, 97.5])]
+                                if bu.size > 20 else None),
+        "p_value": float(2 * stats.norm.sf(abs(zu))) if np.isfinite(zu) else np.nan,
+        "reads": ("explained_share is the part of the late-stage excess that continuing only after good "
+                  "early results reproduces; a significant unexplained_pp is what remains to be accounted "
+                  "for by selective reporting or manipulation between the stages"),
+    })
+    return out
+
+
+def phase_report(z_early, z_late, continued=None, threshold=1.96, seed=0) -> dict:
+    """The across-stages battery: threshold tests on each stage, the phase
+    shift, and -- when the early stage's continuation flags are known -- the
+    selective-continuation decomposition."""
+    out = {
+        "early": {"n": int(np.isfinite(np.asarray(z_early, float)).sum()),
+                  "density_jump": density_jump_test(z_early, center=threshold, seed=seed),
+                  "caliper": caliper_test(z_early, center=threshold)},
+        "late": {"n": int(np.isfinite(np.asarray(z_late, float)).sum()),
+                 "density_jump": density_jump_test(z_late, center=threshold, seed=seed),
+                 "caliper": caliper_test(z_late, center=threshold)},
+        "phase_shift": phase_shift_test(z_early, z_late, threshold),
+    }
+    if continued is not None:
+        out["continuation"] = continuation_decomposition(z_early, continued, z_late, threshold, seed=seed)
+    late_jump = out["late"]["density_jump"].get("p_value", 1.0) < 0.05
+    late_spike = out["late"]["caliper"].get("p_value", 1.0) < 0.05
+    shift = out["phase_shift"].get("p_value", 1.0) < 0.05
+    cont = out.get("continuation", {})
+    unexpl = cont.get("p_value", 1.0) < 0.05 if "p_value" in cont else None
+    if late_spike:
+        sig = "spike past the threshold in the later stage: individual results pushed across (p-hacking)"
+    elif late_jump:
+        sig = ("level shift at the threshold in the later stage with no spike: results below the line "
+               "are missing (selective reporting)")
+    elif shift and unexpl is False:
+        sig = ("more significant results in the later stage, no threshold signature, and the continuation "
+               "rule explains the rise: selection between stages, not manipulation")
+    elif shift and unexpl:
+        sig = ("more significant results in the later stage, no threshold signature, and the continuation "
+               "rule does NOT explain the rise: selective reporting between stages is the remaining candidate")
+    elif shift:
+        sig = ("more significant results in the later stage and no threshold signature; supply the "
+               "continuation flags to separate selection from reporting")
+    else:
+        sig = "no across-stage or threshold signature"
+    out["signature"] = sig
+    out["caveat"] = ("These are tests on the distribution across many projects. They cannot establish "
+                     "that any individual result was p-hacked or withheld.")
+    return out
+
+
 def report(pvals=None, zstats=None, alpha=0.05, seed=0) -> dict:
     """Run the full detection battery. Supply p-values, z-statistics, or both."""
     if pvals is None and zstats is None:
@@ -268,6 +549,7 @@ def report(pvals=None, zstats=None, alpha=0.05, seed=0) -> dict:
             binomial_test(pvals, alpha), fisher_test(pvals, alpha),
             stouffer_test(pvals, alpha), lcm_test(pvals, alpha, seed=seed),
             discontinuity_test(pvals), caliper_test(zstats),
+            density_jump_test(zstats, seed=seed),
             pcurve_power(pvals, alpha),
         ],
     }
@@ -292,6 +574,16 @@ def report(pvals=None, zstats=None, alpha=0.05, seed=0) -> dict:
         if bunch_flags else
         "some evidence of p-hacking" if shape_flags else
         "no distributional evidence of p-hacking")
+    spike = any(t in bunch_flags for t in ("caliper", "discontinuity"))
+    jump = "density_jump" in bunch_flags
+    out["threshold_signature"] = (
+        "spike just past the threshold: individual results pushed across the line (p-hacking)"
+        if spike else
+        "level shift at the threshold without a spike: results below the line are missing "
+        "rather than pushed across (selective reporting)"
+        if jump else
+        "no threshold signature; a rise in the share significant between stages of a project, "
+        "if present, is selection (continuation) and needs phase_report, not a threshold test")
     out["caveat"] = ("These are tests on the distribution across many studies. "
                      "They cannot establish that any individual result was p-hacked.")
     return out

@@ -1,7 +1,8 @@
 # p-hacking-skills
 
-An instrumented p-hacking engine for econometric designs, built so the
-offensive capability cannot be separated from its audit trail.
+A specification-search audit and p-hacking benchmark for econometric
+designs. It can perform a search, and it always shows what the search was
+worth — see [Responsible use](https://github.com/brycewang-stanford/p-hacking-skills/blob/main/RESPONSIBLE_USE.md).
 
 !!! warning "Intended use"
     This tool is for academic research on and teaching about p-hacking, and

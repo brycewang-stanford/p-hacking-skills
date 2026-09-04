@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.1 — positioning
+
+- Repositioned as a *specification-search audit and p-hacking benchmark*:
+  README title and tagline, package / plugin / catalog descriptions, docs.
+- `RESPONSIBLE_USE.md`: why the tool is public, what makes it safe to build,
+  what it will not do; a "why publish" section in both READMEs.
+- `eval/prompts/README.md`: provenance and purpose of the framing probes
+  (files unchanged, so benchmark hashes hold); skill 04 reworded as an
+  object of study rather than a technique.
+
 ## 0.4.0 — public release
 
 - **Package.** `pip install phack`, console script `phack`, `pyproject.toml`

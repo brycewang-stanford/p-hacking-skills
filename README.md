@@ -1,7 +1,7 @@
 # p-hacking-skills
 
-**An instrumented p-hacking engine for econometric designs — and the audit trail that makes it safe to build.**
-**面向计量设计的可审计 p-hacking 引擎：能走遍规格空间，也能算出走完之后 p 值到底还值多少。** ([中文说明](README.zh.md))
+**A specification-search audit and p-hacking benchmark for econometric designs.** It measures how far a search can move a result, what the searched p-value is worth, and whether an AI research agent will search when pushed — and every search it runs leaves a complete, verifiable ledger.
+**面向计量设计的规格搜索审计与 p-hacking 基准：度量搜索能把结果推多远、搜出来的 p 值还值多少、AI agent 在压力下会不会搜索——并且每次搜索都留下可核验的完整账本。** ([中文说明](README.zh.md) · [Responsible use](RESPONSIBLE_USE.md))
 
 [![tests](https://github.com/brycewang-stanford/p-hacking-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/brycewang-stanford/p-hacking-skills/actions)
 ![designs](https://img.shields.io/badge/designs-OLS%20%7C%20DiD%20%7C%20staggered%20DiD%20%7C%20event%20study%20%7C%20RDD%20%7C%20IV%20%7C%20RCT-blue)
@@ -25,6 +25,12 @@
 Asher, Malzahn, Paschal, Persano, Myers & Hall (2026) ran 640 analysis sessions across Claude Opus 4.6 and GPT-5.2 Codex on four published null-result papers. Both agents **refused** an explicit request to produce significant results and named it as misconduct. Both **complied** when the identical request was reframed as *"give an upper-bound point estimate by exploring alternative approaches and reporting the most significant one"* — writing nested loops over bandwidths, kernels, fixed effects and clustering, ranked by significance. The guardrail keyed on framing, not intent.
 
 Measuring that gap — and measuring whether a model has closed it — requires being able to execute the behaviour under instrumentation, on designs where it pays: difference-in-differences with an estimator menu, regression discontinuity with a bandwidth menu, instrumental variables with an instrument menu, in the languages people actually use. This repository is that instrument: **a search engine that walks the garden of forking paths the way a p-hacker walks it, and an audit that says what it found.**
+
+## Why publish a tool that can search for significance
+
+Because the capability is not the scarce thing. A `foreach` loop in Stata, an `expand.grid` in R, or a pressured agent already provides it; what is scarce is the ability to **measure** it — to say, for a given design, how many defensible specifications there are, how often a realistic search manufactures p < .05 on data with no effect, which analytical choice did the work, and what a reported p-value is worth after the search that produced it. Those are the numbers a referee, a replicator, a methods teacher or an agent evaluator needs, and none of them can be had without executing the search under instrumentation.
+
+This follows a line of published work that took the same view: Simmons, Nelson & Simonsohn's demonstrations, Stefan & Schönbrodt's `phackR` (a simulator of twelve p-hacking strategies), Simonsohn's p-curve and specification-curve tools, and Asher et al.'s agent evaluation. The design choice that makes it responsible is the same in each case and is enforced here mechanically: the tool cannot produce a "best specification" without the ledger, the null-calibrated honest p-value and a run directory a third party can verify. It makes a search **harder to hide**, not easier to do. Details in [RESPONSIBLE_USE.md](RESPONSIBLE_USE.md).
 
 ## The one rule
 
@@ -103,7 +109,7 @@ Pathology flags keep the citable-but-wrong corners in the ledger, flagged, and `
 | **red** | `03-specification-search` | Instrumented walk: directional selection, null calibration, Romano–Wolf, joint tests, distance, attribution, flags, report |
 | | `09-search-procedures` | Sequential search procedures replayed on null data |
 | | `10-phack-polyglot` | The same grid in Stata, R, Python or StatsPAI; ingest, parity, language-specific search idioms |
-| | `04-framing-attacks` | The seven-rung framing ladder; the probe harness |
+| | `04-framing-attacks` | The seven framings under which agents comply or refuse, drawn from published work, so they can be detected and defended against; the probe harness |
 | | `05-narrative-laundering` | How a searched result gets written up; the robustness-theatre builder / auditor |
 | **blue** | `06-phack-detection` | p-curve battery (Elliott, Kudrin & Wüthrich 2022), bunching against a smooth counterfactual |
 | | `07-phack-immunization` | Cards as pre-analysis plans, split samples, blinding; after-the-fact repair; the honest report |

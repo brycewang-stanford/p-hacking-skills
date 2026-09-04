@@ -1,5 +1,5 @@
 site_name: p-hacking-skills
-site_description: An instrumented p-hacking engine for econometric designs, for research and teaching about p-hacking.
+site_description: A specification-search audit and p-hacking benchmark for econometric designs, for research and teaching about p-hacking.
 repo_url: https://github.com/brycewang-stanford/p-hacking-skills
 theme:
   name: material

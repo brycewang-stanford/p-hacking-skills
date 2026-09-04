@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "phack"
 dynamic = ["version"]
-description = "An instrumented p-hacking engine for econometric designs: specification search with a complete ledger, null-calibrated honest p-values, search procedures, and Stata / R / Python / StatsPAI runners. For research and teaching about p-hacking; not for producing findings."
+description = "A specification-search audit and p-hacking benchmark for econometric designs: every search leaves a complete, verifiable ledger and a null-calibrated honest p-value; realistic search procedures are replayed on null data; Stata / R / Python / StatsPAI runners over the same grid. For research and teaching about p-hacking, not for producing findings."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
