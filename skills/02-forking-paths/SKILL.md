@@ -17,6 +17,14 @@ this dataset**: a bandwidth grid is real for an RDD and meaningless for an RCT.
 
 ## Step 2 — write a design card
 
+`phack init DATA [--design …] [--treatment …] [--outcome …]` drafts one:
+panel keys, the treatment, a control pool, fixed-effect and clustering
+menus, a window split, staggered-adoption axes when the treatment is
+absorbing, and the conventional specification as `preregistered`. Every
+guess is listed in its `notes`; the draft is a starting point, not a card.
+`schema/design-card.schema.json` is the formal schema and the loader
+validates against it when `jsonschema` is installed (`phack schema` prints it).
+
 A design card is JSON. Each key is one axis of the grid; omitting a key
 collapses that axis to a single default, which is how a pre-registered analysis
 is encoded.

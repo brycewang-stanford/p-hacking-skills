@@ -189,10 +189,50 @@ def export(df, card, specs, out_dir, *, lang="stata", data_path=None, null_B=0,
                            "r": "Rscript run_specs.R", "python": "python run_specs.py",
                            "statspai": "python run_specs_statspai.py"}[lang],
             "then": "phack ingest <this directory>"}
+    meta["requirements"] = REQUIREMENTS[lang]
     with open(os.path.join(out_dir, "export.json"), "w") as fh:
         json.dump(meta, fh, indent=2, default=str)
+    with open(os.path.join(out_dir, "README.txt"), "w") as fh:
+        fh.write(EXPORT_README.format(lang=lang, n=len(tab), B=null_B, runner=os.path.basename(runner),
+                                      how=meta["how_to_run"], req=REQUIREMENTS[lang], design=card.get("design")))
     return {"dir": out_dir, "runner": runner, "n_specs": int(len(tab)), "null_draws": null_B,
-            "how_to_run": meta["how_to_run"]}
+            "how_to_run": meta["how_to_run"], "requirements": REQUIREMENTS[lang]}
+
+
+REQUIREMENTS = {
+    "stata": "Stata 16+; ssc install reghdfe ftools ivreghdfe ivreg2 ranktest rdrobust did2s",
+    "r": "R >= 4.1; install.packages(c('fixest', 'data.table', 'rdrobust', 'did2s'))",
+    "python": "pip install pandas numpy scipy statsmodels linearmodels",
+    "statspai": "pip install statspai   (pip install 'statspai[fixest]' for IV with fixed effects)",
+}
+
+EXPORT_README = """phack export -- {lang} runner for a {design} design card
+=================================================================
+
+Files
+  specs.csv          {n} specifications, one per row: every analytical choice, plus key and label
+  data.csv           the data, exactly as the engine saw it
+  null_columns.csv   {B} null draws: the permuted columns (<var>__<b>) the null replay swaps in
+  {runner}    the generated runner -- read it; edit only if the grid semantics are kept
+  export.json        what was exported, by whom, with which card
+
+Requirements
+  {req}
+
+Run
+  {how}
+
+It writes
+  ledger_raw.csv     key, label, coef, se, t, p, n, status, first_stage_F, bandwidth, n_left, n_right
+  null_stats.csv     draw, key, coef, t, p   (only when null draws were exported)
+
+Then, back in Python
+  phack ingest <this directory> --parity
+which writes ledger.csv, audit.json, manifest.json, report.md, spec_curve.png and parity.json.
+
+Rows the runner cannot estimate in this language are written with
+status = "unsupported: ..." and counted, never skipped. See references/language-map.md.
+"""
 
 
 # --------------------------------------------------------------------------

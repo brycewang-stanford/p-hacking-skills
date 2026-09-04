@@ -1,0 +1,13 @@
+{
+  "name": "p-hacking-skills",
+  "owner": { "name": "Bryce Wang" },
+  "metadata": { "description": "Skills for studying p-hacking: instrumented specification search, honest inference, detection, immunisation, agent evaluation." },
+  "plugins": [
+    {
+      "name": "p-hacking-skills",
+      "source": "./",
+      "description": "Eleven skills (map / red / blue / eval) plus the phack engine. Research and teaching use only.",
+      "version": "0.4.0"
+    }
+  ]
+}

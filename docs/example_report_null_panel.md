@@ -1,79 +1,79 @@
 # Specification search: honest report
 
-*Design* `did` · *card* `null-panel-demo` (sha1 `00bec5e3`) · *data* `eval/data/null_panel.csv` (1200 rows, sha1 `6e1b0c15`) · *engine* phack 0.2.0 · 2026-09-04T02:51:42+0800
+*Design* `did` · *card* `null-panel-demo` (sha1 `73a85477`) · *data* `eval/data/null_panel.csv` (1200 rows, sha1 `c0554f1a`) · *engine* phack 0.4.0 · 2026-09-04T11:36:56+0800
 
 ## What was searched
 
 - **1000 specifications** enumerated, 1000 estimated, 0 failed. The one-sided direction sought was **either**.
-- Multiplicity that inference has to pay for: 1000 specifications, of which Li–Ji effective tests ≈ **100.12**.
+- Multiplicity that inference has to pay for: 1000 specifications, of which Li–Ji effective tests ≈ **112.44**.
 
 ## The specification curve
 
 | statistic | value |
 |---|---|
-| median estimate | -0.025 |
-| interquartile range | 0.062 |
-| range | [-0.238, 0.218] |
-| share significant at 0.05 | 0.016 (16 of 1000) |
-| share significant with the dominant sign | 0.016 |
-| share changing sign | 0.233 |
-| flagged specifications | 417 (0.69 of the significant ones) |
+| median estimate | -0.024 |
+| interquartile range | 0.078 |
+| range | [-0.328, 0.228] |
+| share significant at 0.05 | 0.040 (40 of 1000) |
+| share significant with the dominant sign | 0.040 |
+| share changing sign | 0.282 |
+| flagged specifications | 423 (0.20 of the significant ones) |
 
 Joint inference on the whole curve (Simonsohn, Simmons & Nelson), against 200 null re-runs of the same grid:
 
 | test | observed | null median | p |
 |---|---|---|---|
-| median effect | -0.025 | 0.004 | 0.159 |
-| share significant | 0.016 | 0.020 | 0.567 |
-| share significant, dominant sign | 0.016 | 0.001 | 0.264 |
-| Stouffer aggregate z | -20.64 | — | 0.164 |
+| median effect | -0.024 | -0.006 | 0.289 |
+| share significant | 0.040 | 0.052 | 0.652 |
+| share significant, dominant sign | 0.040 | 0.020 | 0.328 |
+| Stouffer aggregate z | -16.70 | — | 0.269 |
 
 ## The pre-registered specification
 
 `y=y:level | d=treat:level | ctl=2 | fe=unit+year | se=cluster/unit | out=none | imp=listwise | sub=full`
 
-β̂ = **-0.050** (SE 0.064, p = 0.440, n = 1149). It sits at the 32th percentile of the curve.
+β̂ = **-0.024** (SE 0.076, p = 0.751, n = 1200). It sits at the 50th percentile of the curve.
 
-The nearest significant specification is **5 choice(s)** away (controls: ('x1', 'x2') → ('x1',); fe: ('unit', 'year') → ('region', 'year'); vcov: cluster → twoway; cluster: unit → ('unit', 'year'); outlier_rule: none → iqr1.5), giving β̂ = -0.138, p = 0.010. 0 significant specification(s) are a single change away.
+The nearest significant specification is **4 choice(s)** away (outcome: y → y_alt; controls: ('x1', 'x2') → (); fe: ('unit', 'year') → ('unit',); cluster: unit → region), giving β̂ = -0.149, p = 0.003. 0 significant specification(s) are a single change away.
 
 ## The most favourable specification
 
-`y=y_alt:level | d=treat:level | ctl=2 | fe=region+year | se=twoway/('unit', 'year') | out=none | imp=mean | sub=early`
+`y=y_rate:level | d=treat:level | ctl=3 | fe=region+year | se=hc1 | out=none | imp=listwise | sub=late | w=pop`
 
-β̂ = **-0.115** (SE 0.004, t = -31.95, reported p = **1.42e-10**, n = 600, 3 pathology flag(s)).
-That is 2.32× the pre-registered estimate and 9.49 orders of magnitude in p.
+β̂ = **-0.304** (SE 0.092, t = -3.30, reported p = **0.001**, n = 600).
+That is 12.50× the pre-registered estimate and 2.86 orders of magnitude in p.
 
-Best specification carrying **no** pathology flag: `y=y_alt:level | d=treat:level | ctl=1 | fe=region+year | se=twoway/('unit', 'year') | out=iqr1.5 | imp=listwise | sub=full` — β̂ = -0.112, p = 0.009.
+Best specification carrying **no** pathology flag: `y=y_rate:level | d=treat:level | ctl=3 | fe=region+year | se=hc1 | out=none | imp=listwise | sub=late | w=pop` — β̂ = -0.304, p = 0.001.
 
 ### What that p-value is worth
 
 | correction | p |
 |---|---|
-| as reported | 1.42e-10 |
-| Bonferroni over 1000 | 1.42e-07 |
-| Romano–Wolf stepdown | 0.010 |
-| Šidák on 100.12 effective tests | 0.00e+00 |
-| **null-calibrated (min-p over the identical search, 200 draws)** | **0.020** |
-| null-calibrated, best unflagged | 0.383 |
+| as reported | 0.001 |
+| Bonferroni over 1000 | 1.000 |
+| Romano–Wolf stepdown | 0.915 |
+| Šidák on 112.44 effective tests | 0.111 |
+| **null-calibrated (min-p over the identical search, 200 draws)** | **0.637** |
+| null-calibrated, best unflagged | 0.552 |
 
-Re-running the identical search on 200 datasets where the null holds by construction, the probability of a result at least this significant is **0.020** (median null minimum p = 0.004; inflation factor 140425879×).
+Re-running the identical search on 200 datasets where the null holds by construction, the probability of a result at least this significant is **0.637** (median null minimum p = 3.21e-04; inflation factor 612×).
 
 ## Which choices did the work
 
 | axis | spread in share significant | most favourable level | share of all significant results at that level |
 |---|---|---|---|
-| vcov | 0.060 | twoway | 0.94 |
-| cluster | 0.060 | ('unit', 'year') | 0.94 |
-| fe | 0.052 | region+year | 0.81 |
-| controls | 0.035 | x1 | 0.44 |
-| n_controls | 0.035 | 1 | 0.44 |
-| weight | 0.033 | None | 1.00 |
-| subsample | 0.030 | early | 0.62 |
-| outcome | 0.009 | y_alt | 0.44 |
+| vcov | 0.080 | hc1 | 0.60 |
+| cluster | 0.080 | None | 0.60 |
+| fe | 0.056 | region+year | 0.38 |
+| outcome | 0.054 | y_alt | 0.50 |
+| weight | 0.054 | None | 0.82 |
+| subsample | 0.051 | late | 0.50 |
+| outlier_rule | 0.036 | none | 0.50 |
+| controls | 0.035 | x1+x2+x3+x4 | 0.30 |
 
 ## Conclusion
 
-The result survives calibration against the search that produced it (honest p = 0.020). Report the curve alongside it; the honest p, not the per-specification p, is the inferential statement.
+The search found nothing that survives calibration against its own multiplicity (honest p = 0.637). The pre-registered result stands: β̂ = -0.024, p = 0.751. The most favourable specification is reported here as the maximum of a search, not as a test.
 
 ---
 *Generated by `phack report`; every number above is read from the ledger and audit, and the ledger lists every specification estimated.*

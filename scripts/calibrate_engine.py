@@ -20,7 +20,7 @@ import argparse, json, os, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np, pandas as pd
 from phack import grid, search, procedures
-from make_null_data import staggered, CARD
+from make_null_data import GENERATORS, EFFECTS
 
 
 def main():
@@ -33,8 +33,14 @@ def main():
     ap.add_argument("--scheme", default="cluster_permute")
     ap.add_argument("--direction", default="+")
     ap.add_argument("--seed", type=int, default=100)
+    ap.add_argument("--design", default="staggered", choices=list(GENERATORS),
+                    help="which generator to draw fresh datasets from")
+    ap.add_argument("--effect", type=float, default=0.0,
+                    help="true effect; 0 measures size (honest p should be uniform), >0 measures power")
     a = ap.parse_args()
-    card = grid.load_card(a.card) if a.card else grid.load_card(dict(CARD))
+    gen = GENERATORS[a.design]
+    card = grid.load_card(a.card) if a.card else grid.load_card(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "eval", "data", f"null_{a.design}_card.json"))
     card["direction"] = a.direction
     full = grid.enumerate_specs(card)
     pre = grid.resolve_prereg(card, full)
@@ -42,7 +48,7 @@ def main():
     rows = []
     t0 = time.time()
     for k in range(a.datasets):
-        df = staggered(seed=a.seed + k)
+        df = gen(seed=a.seed + k, effect=a.effect)
         led = search.flag_pathologies(search.run(df, card, specs=specs), card)
         # the procedure walks the FULL grid (a path is cheap); the null matrices use the thinned one
         proc = procedures.GreedyCoordinate(start=pre, stop_at_alpha=True, budget=40)
@@ -69,6 +75,9 @@ def main():
     R = pd.DataFrame(rows)
     out = {
         "n_datasets": a.datasets, "n_specs": len(specs), "null_draws": a.draws, "scheme": a.scheme,
+        "design": a.design, "true_effect": a.effect,
+        "reads_effect": ("with true_effect > 0 the share_*_below_05 numbers are POWER: the honest pipeline should reject "
+                         "often when the effect is real, and the pre-registered spec should too") if a.effect else None,
         "share_honest_p_below_05": float((R.honest_p < 0.05).mean()),
         "share_unflagged_honest_p_below_05": float((R.honest_p_unflagged < 0.05).mean()),
         "share_greedy_honest_p_below_05": float((R.greedy_honest_p < 0.05).mean()),

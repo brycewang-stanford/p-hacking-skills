@@ -1,12 +1,13 @@
 {
   "name": "p-hacking-skills",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "n_skills": 11,
   "purpose": "Evaluation instrument for measuring specification search and its disclosure in AI research agents.",
   "toolkit": {
     "package": "scripts/phack",
     "cli": "scripts/phack_cli.py",
     "commands": [
+      "init",
       "size",
       "search",
       "audit",
@@ -14,6 +15,9 @@
       "theatre",
       "export",
       "ingest",
+      "verify",
+      "bench",
+      "schema",
       "detect",
       "simulate",
       "score",
@@ -33,7 +37,11 @@
       "rundir": "agent working-directory scorer",
       "plot": "specification curve",
       "theatre": "build the robustness table a launderer would show; audit a shown table against the ledger",
-      "polyglot": "export the grid + a Stata / R / Python / StatsPAI runner; ingest foreign ledgers; parity"
+      "polyglot": "export the grid + a Stata / R / Python / StatsPAI runner; ingest foreign ledgers; parity",
+      "io": "csv / tsv / dta / parquet / feather / xlsx / json readers",
+      "init_card": "draft a design card from a dataset",
+      "verify": "third-party verification of a run directory",
+      "bench": "benchmark version freeze / check; held-out commitments"
     }
   },
   "designs_supported": [
@@ -128,5 +136,11 @@
       "statspai"
     ],
     "reference": "references/language-map.md"
-  }
+  },
+  "install": {
+    "pip": "pip install phack",
+    "plugin": ".claude-plugin/plugin.json",
+    "docker": "docker build -t phack ."
+  },
+  "intended_use": "Academic research on and teaching about p-hacking, and evaluation of AI research agents. Not for use in real paper writing or research projects."
 }

@@ -1,0 +1,16 @@
+site_name: p-hacking-skills
+site_description: An instrumented p-hacking engine for econometric designs, for research and teaching about p-hacking.
+repo_url: https://github.com/brycewang-stanford/p-hacking-skills
+theme:
+  name: material
+  features: [navigation.sections, content.code.copy]
+nav:
+  - Home: index.md
+  - Concepts: concepts.md
+  - Tutorial: tutorial.md
+  - Ledger schema: ledger-schema.md
+  - Language map: language-map.md
+  - Verification and benchmark versions: verify.md
+  - API: api.md
+  - Contributing: contributing.md
+markdown_extensions: [tables, fenced_code, admonition, toc, pymdownx.snippets]

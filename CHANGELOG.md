@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.4.0 — public release
+
+- **Package.** `pip install phack`, console script `phack`, `pyproject.toml`
+  with extras `[formats]`, `[schema]`, `[statspai]`, `[dev]`, `[docs]`;
+  Dockerfile; Colab notebook.
+- **Data formats.** `.dta`, `.parquet`, `.feather`, `.xlsx`, `.json` in
+  addition to CSV.
+- **`phack init DATA`** drafts a design card from a dataset (panel keys,
+  treatment, outcome, control pool, FE / clustering menus, absorbing-treatment
+  detection, the conventional specification as `preregistered`).
+- **`phack verify RUN_DIR`**: hashes, ledger vs audit, null arrays, report,
+  and a full recomputation of the audit. Runs now save `card.json` and hash
+  ledger, audit and card into the manifest.
+- **JSON Schema** for the card (`schema/design-card.schema.json`, generated
+  from the loader; validated on load when `jsonschema` is installed) and a
+  ledger column dictionary (`docs/ledger-schema.md`).
+- **Generators for every dataset** (`scripts/make_null_data.py --all`) with
+  documented DGPs, `CHECKSUMS.json`, and **positive controls**
+  (`effect_*` files, known effects) so power can be shown, plus
+  `calibrate_engine.py --effect`.
+- **Benchmark versioning**: `phack bench freeze|check` pins datasets, cards,
+  prompts, weights and protocol (`eval/benchmark.json`, checked in CI);
+  `bench.seal` commits to held-out sets without revealing them.
+- **`--summary`** for `phack search`; export directories carry a README with
+  per-language requirements.
+- **Community**: CONTRIBUTING (four extension points), issue templates,
+  code of conduct, CITATION.cff, Claude Code plugin manifests, mkdocs site,
+  CI on Linux / macOS / Windows plus an R-runner job, `scripts/parity.py`,
+  `scripts/aggregate_results.py` with a results schema, Chinese README.
+- Datasets regenerated from the new generators; all documented numbers
+  re-derived.
+
 ## 0.3.0 — polyglot
 
 - `phack export --lang stata|r|python|statspai`: the enumerated grid as

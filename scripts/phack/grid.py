@@ -179,6 +179,11 @@ def load_card(path_or_dict) -> dict:
         with open(raw) as fh:
             raw = json.load(fh)
     unknown = set(raw) - set(DEFAULTS) - META_KEYS
+    if unknown:
+        raise KeyError(f"unknown design-card keys: {sorted(unknown)}")
+    problems = validate_card(raw)
+    if problems:
+        raise ValueError("design card fails the schema: " + "; ".join(problems[:5]))
     design = raw.get("design", "ols")
     if design == "rdd" and not raw.get("running"):
         raise ValueError("design 'rdd' needs a 'running' column")
@@ -202,6 +207,72 @@ def load_card(path_or_dict) -> dict:
     if card.get("direction") not in (None, "+", "-", 1, -1, "pos", "neg"):
         raise ValueError("direction must be '+', '-' or null")
     return card
+
+
+def card_schema() -> dict:
+    """JSON Schema (draft 2020-12) for a design card, generated from DEFAULTS
+    so it cannot drift from the loader. Published as schema/design-card.schema.json."""
+    str_list = {"type": "array", "items": {"type": "string"}}
+    nullable_str = {"type": ["string", "null"]}
+    props = {
+        "name": {"type": "string"}, "notes": {"type": "string"}, "seed": {"type": "integer"},
+        "design": {"type": "string", "enum": ["ols", "rct", "did", "rdd", "iv"], "default": "ols"},
+        "direction": {"type": ["string", "null"], "enum": ["+", "-", None]},
+        "preregistered": {"type": ["object", "string", "null"],
+                          "description": "axis -> value (any subset of grid.AXES), a 12-hex key, or a free-text note"},
+        "outcomes": {"oneOf": [str_list, {"type": "string"}]}, "treatment": nullable_str,
+        "controls_pool": str_list,
+        "control_policy": {"type": "string", "enum": ["none", "nested", "all_subsets", "leave_one_out"]},
+        "max_controls": {"type": ["integer", "null"]},
+        "fixed_effects": {"type": "array", "items": str_list},
+        "vcov": {"type": "array", "items": {"type": "string", "enum": ["iid", "hc0", "hc1", "hc2", "hc3", "cluster", "twoway"]}},
+        "cluster": {"type": "array", "items": {"oneOf": [nullable_str, str_list]}},
+        "outcome_transforms": {"type": "array", "items": {"type": "string", "enum": sorted(core.TRANSFORMS)}},
+        "treatment_transforms": {"type": "array", "items": {"type": "string", "enum": sorted(core.TRANSFORMS)}},
+        "outlier_rules": {"type": "array", "items": {"type": "string", "enum": sorted(core.OUTLIER_RULES)}},
+        "outlier_basis": {"type": "string", "enum": ["outcome", "treatment", "residual"]},
+        "imputation": {"type": "array", "items": {"type": "string", "enum": ["listwise", "mean", "median", "zero", "ffill", "interp"]}},
+        "subsamples": {"type": "object", "additionalProperties": {"type": "string"}},
+        "weights": {"type": "array", "items": nullable_str},
+        "interactions": {"type": "array", "items": str_list},
+        "lags": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+        "panel_unit": nullable_str, "panel_time": nullable_str,
+        "did_estimators": {"type": "array", "items": {"type": "string", "enum": ["twfe", "did2s", "stacked"]}},
+        "comparison_groups": {"type": "array", "items": {"type": "string", "enum": ["all", "drop_never_treated", "drop_always_treated"]}},
+        "cohort": nullable_str,
+        "stack_window": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
+        "event_windows": {"type": ["array", "null"], "items": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2}},
+        "reference_periods": {"type": "array", "items": {"type": "integer"}},
+        "event_estimands": {"type": "array", "items": {"type": "string", "pattern": "^(avg_post|avg_pre|lag[0-9]+)$"}},
+        "running": nullable_str, "cutoff": {"type": "number"},
+        "bandwidth_selectors": {"type": "array", "items": {"type": "string", "enum": ["rot", "ik"]}},
+        "bandwidth_multipliers": {"type": "array", "items": {"type": "number", "exclusiveMinimum": 0}},
+        "bandwidths": {"type": ["array", "null"], "items": {"type": "number", "exclusiveMinimum": 0}},
+        "kernels": {"type": "array", "items": {"type": "string", "enum": sorted(core.KERNELS)}},
+        "poly_orders": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 4}},
+        "donuts": {"type": "array", "items": {"type": "number", "minimum": 0}},
+        "rdd_inference": {"type": "array", "items": {"type": "string", "enum": ["conventional", "bias_corrected", "robust"]}},
+        "instruments_pool": str_list,
+        "instrument_policy": {"type": "string", "enum": ["all", "nested", "all_subsets", "leave_one_out"]},
+        "iv_estimators": {"type": "array", "items": {"type": "string", "enum": ["2sls", "liml"]}},
+    }
+    return {"$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://github.com/brycewang-stanford/p-hacking-skills/schema/design-card.schema.json",
+            "title": "phack design card",
+            "description": "One axis per researcher degree of freedom; omit a key to fix that axis at its default. "
+                           "Requires `outcomes`, and `treatment` unless design is rdd (then `running`); iv needs `instruments_pool`.",
+            "type": "object", "properties": props, "required": ["outcomes"], "additionalProperties": False}
+
+
+def validate_card(raw: dict) -> list:
+    """Return a list of schema violations (empty = valid). Uses jsonschema when
+    installed; otherwise only the loader's own checks apply."""
+    try:
+        import jsonschema
+    except ImportError:
+        return []
+    v = jsonschema.Draft202012Validator(card_schema())
+    return [f"{'/'.join(map(str, e.path)) or '<card>'}: {e.message}" for e in v.iter_errors(raw)]
 
 
 def direction_sign(card_or_value):

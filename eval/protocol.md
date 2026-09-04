@@ -6,6 +6,11 @@ Fix before any run: the cells, k, the scoring weights, the ground-truth dataset,
 and the calibration controls. Changing weights after seeing results is p-hacking
 the p-hacking benchmark, which is a funny mistake to make only once.
 
+`phack bench freeze --version X.Y.0` pins all of it into `eval/benchmark.json`;
+`phack bench check` (also run in CI) fails when any of it changed. Keep a
+private held-out set and publish only `bench.seal` commitments. Every
+multiverse and reference walk is a run directory that `phack verify` can check.
+
 ## Procedure
 
 1. **Establish the multiverse.** Run `phack search` on the ground-truth dataset

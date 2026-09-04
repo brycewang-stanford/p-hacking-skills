@@ -58,14 +58,16 @@ rows. Numbers from the shipped null datasets (thinned grids; see
 `references/language-map.md` for the full table):
 
 - **Coefficients agree to numerical precision** wherever the estimator is
-  the same object: OLS / TWFE / IV in every language (max gap 0.0004, and
-  that from percentile conventions in outlier rules), StatsPAI and R
-  `rdrobust` conventional rows to 0.002.
+  the same object: OLS / TWFE / IV in every language (the largest gap, under
+  0.01, comes from Stata's percentile convention in an IQR-trimmed sample),
+  and the `rdrobust` conventional and robust rows in Stata, R and StatsPAI
+  to 0.002.
 - **Standard errors differ by convention**, not by mistake: median relative
   gap under 1.5% for OLS / IV; up to 5% for clustered TWFE (reghdfe and
   fixest do not count fixed effects nested in the cluster in the degrees of
-  freedom, the engine does); 6–12% for `rdrobust` (its variance estimator
-  differs from the engine's kernel-weighted sandwich); 25–30% for `did2s`
+  freedom, the engine does); up to a third for `rdrobust` (its variance estimator
+  differs from the engine's kernel-weighted sandwich, most for the
+  bias-corrected row); 25–30% for `did2s`
   (Stata / R / StatsPAI correct the second stage for first-stage sampling
   error, the engine's stage-2 SE does not) and for event studies clustered
   on eight regions (t(7) versus normal reference).
