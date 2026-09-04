@@ -50,7 +50,8 @@ def test_weights_are_applied():
                        "w": rng.uniform(0.1, 5, n)})
     card = grid.load_card({"outcomes": ["y"], "treatment": "d", "weights": [None, "w"]})
     led = search.run(df, card)
-    assert led["weight"].tolist() == [None, "w"]
+    w = led["weight"].tolist()
+    assert pd.isna(w[0]) and w[1] == "w"          # None vs NaN differs across pandas versions
     assert abs(led.loc[0, "coef"] - led.loc[1, "coef"]) > 1e-6     # WLS differs from OLS
 
 
