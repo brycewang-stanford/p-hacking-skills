@@ -30,7 +30,28 @@ Measuring that gap — and measuring whether a model has closed it — requires 
 
 Because the capability is not the scarce thing. A `foreach` loop in Stata, an `expand.grid` in R, or a pressured agent already provides it; what is scarce is the ability to **measure** it — to say, for a given design, how many defensible specifications there are, how often a realistic search manufactures p < .05 on data with no effect, which analytical choice did the work, and what a reported p-value is worth after the search that produced it. Those are the numbers a referee, a replicator, a methods teacher or an agent evaluator needs, and none of them can be had without executing the search under instrumentation.
 
-This follows a line of published work that took the same view: Simmons, Nelson & Simonsohn's demonstrations, Stefan & Schönbrodt's `phackR` (a simulator of twelve p-hacking strategies), Simonsohn's p-curve and specification-curve tools, and Asher et al.'s agent evaluation. The design choice that makes it responsible is the same in each case and is enforced here mechanically: the tool cannot produce a "best specification" without the ledger, the null-calibrated honest p-value and a run directory a third party can verify. It makes a search **harder to hide**, not easier to do. Details in [RESPONSIBLE_USE.md](RESPONSIBLE_USE.md).
+This follows a line of published work that took the same view ([the tools it builds on](#the-tools-it-builds-on)): Simmons, Nelson & Simonsohn's demonstrations, Stefan & Schönbrodt's `phackR`, Simonsohn's p-curve and specification-curve tools, and Asher et al.'s agent evaluation. The design choice that makes it responsible is the same in each case and is enforced here mechanically: the tool cannot produce a "best specification" without the ledger, the null-calibrated honest p-value and a run directory a third party can verify. It makes a search **harder to hide**, not easier to do. Details in [RESPONSIBLE_USE.md](RESPONSIBLE_USE.md).
+
+## The tools it builds on
+
+Each of the earlier tools does one job well, almost always in R and on one side of the problem. This repository was written with all of them open, re-implements the pieces that mattered, and joins the sides.
+
+| Tool | Language | Does | Data | Designs |
+|---|---|---|---|---|
+| `phackR` — Stefan & Schönbrodt (2023), [astefan1/phacking_compendium](https://github.com/astefan1/phacking_compendium) | R + Shiny | Simulates twelve p-hacking strategies and reports their false-positive rate, p-value and effect-size distributions | Synthetic, under the null | Two-group and correlation tests |
+| `p-hacker` — Schönbrodt, [nicebread/p-hacker](https://github.com/nicebread/p-hacker) | Shiny | Teaching app: hack a simulated experiment by hand and watch p move | Synthetic | One experiment |
+| p-curve — Simonsohn, Nelson & Simmons (2014) | Web app + R | Power and evidential value of a set of reported p-values | Reported p-values | — |
+| `phack` — [skranz/phack](https://github.com/skranz/phack) | R | Elliott, Kudrin & Wüthrich (2022) tests on a p-value distribution | Reported p-values | — |
+| `specr`, `multiverse` — [masurp/specr](https://github.com/masurp/specr), [MUCollective/multiverse](https://github.com/MUCollective/multiverse) | R | Specification-curve and multiverse analysis of an analyst-declared set of specifications | Real | Whatever the analyst declares |
+| Asher et al. (2026) | — | Evaluation protocol for coding agents on four published null-result papers | Real | The four papers |
+
+What this repository adds on top of them:
+
+- **Both sides in one engine.** Simulation (the twelve `phackR` strategies re-implemented in Python, plus the procedure and between-stages layers), instrumented search, audit, detection (the Elliott–Kudrin–Wüthrich battery, p-curve power, caliper, bunching and density-jump tests, phase-shift decomposition) and third-party verification share one ledger format.
+- **Real data and econometric designs.** The garden is declared in a design card for OLS / RCT, difference-in-differences (TWFE, two-stage, stacked, control-group choice), event studies, regression discontinuity (bandwidth, kernel, polynomial, donut, inference) and instrumental variables (instrument subsets, 2SLS / LIML, first-stage F, Anderson–Rubin), with a pre-registered anchor per card.
+- **The search is a procedure, not a set.** Sequential walks with stopping rules, split-sample and selective continuation, replayed on null data so the false-positive rate belongs to *this* way of searching *this* design — not to the specification list.
+- **Four languages, one grid.** The same enumerated grid runs in Stata (`reghdfe` / `ivreghdfe` / `rdrobust` / `did2s`), R (`fixest` / `rdrobust` / `did2s`), Python (`statsmodels` / `linearmodels`) and [StatsPAI](https://github.com/brycewang-stanford/StatsPAI), with a row-by-row parity table. The Stata runner can be driven from Claude Code, Cursor or VS Code through [stata-code](https://github.com/brycewang-stanford/stata-code), the agent-native Stata bridge from the same authors.
+- **A benchmark for agents.** Framings and nudges, PHI scoring, frozen benchmark versions and sealed held-out cards, so a model's tendency to search can be measured and re-measured.
 
 ## The one rule
 
@@ -95,7 +116,7 @@ Pathology flags keep the citable-but-wrong corners in the ledger, flagged, and `
 
 ### It runs in your language, and lets others check
 
-`phack export --lang stata|r|python|statspai` writes the enumerated grid as a language-neutral `specs.csv`, the data, the permuted columns of every null draw, and a generated runner using `reghdfe` / `ivreghdfe` / `rdrobust` / `did2s`, `fixest` / `rdrobust` / `did2s`, `statsmodels` / `linearmodels`, or StatsPAI. `phack ingest --parity` brings the ledger back and compares it with the engine row by row ([language map and parity table](references/language-map.md)): coefficients agree to numerical precision wherever the estimator is the same object; standard-error gaps are conventions; Stata reports a missing SE exactly where the engine raises `flag_nonpsd_vcov`.
+`phack export --lang stata|r|python|statspai` writes the enumerated grid as a language-neutral `specs.csv`, the data, the permuted columns of every null draw, and a generated runner using `reghdfe` / `ivreghdfe` / `rdrobust` / `did2s`, `fixest` / `rdrobust` / `did2s`, `statsmodels` / `linearmodels`, or StatsPAI. With [stata-code](https://github.com/brycewang-stanford/stata-code) registered as an MCP server (`claude mcp add stata-code --scope user -- uvx --from "stata-code[mcp]" stata-code-mcp`), an agent can run the exported `run_specs.do` and read its ledger back without leaving Claude Code; StatsPAI plays the same role for the Python side and cross-checks the Stata estimates. `phack ingest --parity` brings the ledger back and compares it with the engine row by row ([language map and parity table](references/language-map.md)): coefficients agree to numerical precision wherever the estimator is the same object; standard-error gaps are conventions; Stata reports a missing SE exactly where the engine raises `flag_nonpsd_vcov`.
 
 `phack verify RUN_DIR` checks a run directory the way a referee would: hashes of data, card, ledger and audit; the audit's numbers against the ledger; the null arrays; the report's quotations; and a full recomputation. `phack bench check` verifies the working tree against the frozen benchmark version (`eval/benchmark.json`), and `bench.seal` commits to held-out cards and data without revealing them.
 

@@ -14,7 +14,28 @@ Asher 等（2026）发现：前沿编程 agent 会拒绝"请给我显著结果"�
 
 因为"搜索的能力"从来不稀缺：Stata 里一个 `foreach`、R 里一个 `expand.grid`、一个被施压的 agent 都能做到。稀缺的是**度量**它的能力——对一个给定的设计，说清楚有多少可辩护的规格、一次现实的搜索在真零效应数据上多大概率制造出 p < .05、是哪一个分析选择在做功、以及搜索之后报告出来的 p 值还值多少。审稿人、复现者、方法课教师、agent 评测者需要的正是这些数字，而这些数字只有在有记录的条件下执行搜索才能得到。
 
-这与已有的公开工作一脉相承：Simmons–Nelson–Simonsohn 的演示、Stefan & Schönbrodt 的 `phackR`（模拟十二种 p-hacking 策略的 R 包）、Simonsohn 的 p-curve 与规格曲线工具、Asher 等人的 agent 评测。让这类工具负责任的设计选择在每个案例里都一样，这里用机制强制执行：没有账本、没有零校准的诚实 p 值、没有可供第三方核验的运行目录，它就无法输出"最优规格"。它让搜索**更难隐藏**，而不是更容易做。详见 [RESPONSIBLE_USE.md](RESPONSIBLE_USE.md)。
+这与已有的公开工作一脉相承（见下节[它参考了哪些工具](#它参考了哪些工具)）：Simmons–Nelson–Simonsohn 的演示、Stefan & Schönbrodt 的 `phackR`、Simonsohn 的 p-curve 与规格曲线工具、Asher 等人的 agent 评测。让这类工具负责任的设计选择在每个案例里都一样，这里用机制强制执行：没有账本、没有零校准的诚实 p 值、没有可供第三方核验的运行目录，它就无法输出"最优规格"。它让搜索**更难隐藏**，而不是更容易做。详见 [RESPONSIBLE_USE.md](RESPONSIBLE_USE.md)。
+
+## 它参考了哪些工具
+
+前人的每个工具都把一件事做得很好，但几乎都只有 R 版本，而且只站在问题的一侧。本仓库是把它们全部摊开来对照着写的：该重写的部分重写成 Python，再把模拟、搜索、审计、检测几侧接到同一本账本上。
+
+| 工具 | 语言 | 做什么 | 数据 | 设计 |
+|---|---|---|---|---|
+| `phackR` — Stefan & Schönbrodt (2023)，[astefan1/phacking_compendium](https://github.com/astefan1/phacking_compendium) | R + Shiny | 模拟十二种 p-hacking 策略，报告假阳性率、p 值分布与效应量分布 | 真零假设下的模拟数据 | 两组比较、相关检验 |
+| `p-hacker` — Schönbrodt，[nicebread/p-hacker](https://github.com/nicebread/p-hacker) | Shiny | 教学应用：手动"hack"一个模拟实验，看 p 值怎么动 | 模拟数据 | 单个实验 |
+| p-curve — Simonsohn, Nelson & Simmons (2014) | 网页应用 + R | 一组已报告 p 值的功效与证据价值 | 已报告的 p 值 | — |
+| `phack` — [skranz/phack](https://github.com/skranz/phack) | R | Elliott, Kudrin & Wüthrich (2022) 对 p 值分布的检验 | 已报告的 p 值 | — |
+| `specr`、`multiverse` — [masurp/specr](https://github.com/masurp/specr)、[MUCollective/multiverse](https://github.com/MUCollective/multiverse) | R | 对分析者自行声明的规格集合做规格曲线 / 多重宇宙分析 | 真实数据 | 分析者声明什么就是什么 |
+| Asher 等 (2026) | — | 在四篇已发表的零结果论文上评测编程 agent 的协议 | 真实数据 | 那四篇论文 |
+
+本仓库在它们之上多做的事：
+
+- **一个引擎，两侧都有。** 模拟（`phackR` 的十二种策略用 Python 独立重写，再加上过程层与阶段间层）、有记录的搜索、审计、检测（Elliott–Kudrin–Wüthrich 检验组、p-curve 功效、caliper、堆积与密度跳跃检验、阶段间偏移分解）和第三方核验，共用同一种账本格式。
+- **真实数据与计量设计。** 用设计卡片声明花园：OLS / RCT、DiD（TWFE、两阶段、stacked、对照组选择）、事件研究、RDD（带宽、核、多项式、甜甜圈、推断方式）、IV（工具子集、2SLS / LIML、一阶段 F、Anderson–Rubin），每张卡片都有预注册锚点。
+- **搜索是一个过程，不是一个集合。** 带停止规则的顺序搜索、拆样本与选择性延续，都在零数据上重放，所以假阳性率属于"这种搜法在这个设计上"，而不是属于规格清单。
+- **四种语言，同一网格。** 同一份枚举网格可以在 Stata（`reghdfe` / `ivreghdfe` / `rdrobust` / `did2s`）、R（`fixest` / `rdrobust` / `did2s`）、Python（`statsmodels` / `linearmodels`）和 [StatsPAI](https://github.com/brycewang-stanford/StatsPAI) 里跑，并有逐行一致性表。Stata 这一路可以通过我们的 [stata-code](https://github.com/brycewang-stanford/stata-code)（面向 agent 的 Stata 桥接器）直接从 Claude Code、Cursor 或 VS Code 驱动。
+- **面向 agent 的基准。** 措辞与推动、PHI 评分、冻结的基准版本与密封的保留集，让一个模型"会不会搜索"可以被度量、再度量。
 
 ## 安装与最短路径
 
@@ -42,7 +63,7 @@ phack verify phack_out/                                                   # 第�
 2. **走网格。** 穷举，或者像 p-hacker 一样按顺序走并设停止规则（`first_significant`、`random`、`greedy` 坐标下降、`hill_climb`）；零校准会**重放同一过程**，给出"这种搜索方式在这个设计上"的假阳性率。`split_sample` 走两阶段：先在试点样本上搜，再把选中的规格在留出样本（`--stage holdout`，诚实）、全样本（`--stage pooled`，试点的运气进了报告的检验）或试点样本上报告；`--continue-at` 只在试点有希望时才进入确证阶段——这就是 Adda, Decker & Ottaviani (2020) 在临床试验注册库里看到的"选择性延续"。
 3. **算出搜索值多少。** 对最优规格：Bonferroni、Li–Ji 有效检验数、Romano–Wolf、零校准诚实 p；对整条曲线：Simonsohn 联合检验；再加上**与预注册规格的距离**（差几个选择就能显著）和**轴归因**（哪个旋钮在做功）。病理标记把"可引用但错误"的角落留在账本里并标出来。
 4. **写报告，可核验。** `report.md` 从审计生成，数字不可能与账本漂移；`manifest.json` 记录数据、卡片、账本、审计的哈希；`phack verify` 逐项核对。`phack bench` 冻结与检查基准版本；`bench.seal` 对保留集做哈希承诺而不公开内容。
-5. **在你的语言里跑。** `phack export` 导出语言无关的规格表、数据和零假设置换列，并生成 Stata（reghdfe / ivreghdfe / rdrobust / did2s）、R（fixest / rdrobust / did2s）、Python（statsmodels / linearmodels）或 StatsPAI 的执行脚本；`phack ingest --parity` 接回并与引擎逐行比对，一致性表见 `references/language-map.md`。
+5. **在你的语言里跑。** `phack export` 导出语言无关的规格表、数据和零假设置换列，并生成 Stata（reghdfe / ivreghdfe / rdrobust / did2s）、R（fixest / rdrobust / did2s）、Python（statsmodels / linearmodels）或 StatsPAI 的执行脚本；`phack ingest --parity` 接回并与引擎逐行比对，一致性表见 `references/language-map.md`。 把 [stata-code](https://github.com/brycewang-stanford/stata-code) 注册为 MCP server（`claude mcp add stata-code --scope user -- uvx --from "stata-code[mcp]" stata-code-mcp`）之后，agent 可以在 Claude Code 里直接运行导出的 `run_specs.do` 并读回账本；Python 这一侧由 StatsPAI 承担同样的角色，并与 Stata 的估计交叉核对。
 
 ## 阶段之间：选择不是操纵
 
