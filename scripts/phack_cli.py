@@ -15,6 +15,10 @@ Command-line entry point for the p-hacking skills toolkit.
     phack theatre   LEDGER --reported-key K  build the robustness table a launderer would show,
                                              with the denominator it hides
     phack theatre   LEDGER --shown k1,k2,..  audit a table a write-up did show against the ledger
+    phack export    DATA CARD --lang stata|r|python|statspai --out DIR
+                                             write specs.csv + data + null columns + a runner in that
+                                             language; run it there, then:
+    phack ingest    RUN_DIR                  read the foreign ledger back; audit, report, figure
 
 Every subcommand writes JSON to stdout unless told otherwise, so it composes.
 A `search` run directory contains: ledger.csv, audit.json, manifest.json,
@@ -29,7 +33,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 import pandas as pd
 
-from phack import grid, search, detect, simulate, score, inference, plot, rundir, procedures, report, theatre
+from phack import grid, search, detect, simulate, score, inference, plot, rundir, procedures, report, theatre, polyglot
 
 
 def _j(obj):
@@ -209,6 +213,37 @@ def cmd_theatre(a):
     _j(t)
 
 
+def cmd_export(a):
+    df = pd.read_csv(a.data)
+    card = grid.load_card(a.card)
+    if a.direction:
+        card["direction"] = a.direction
+    full = grid.enumerate_specs(card)
+    prereg = grid.resolve_prereg(card, full)
+    specs = grid.thin(full, a.max_specs, keep_keys=[prereg])
+    out = polyglot.export(df, card, specs, a.out, lang=a.lang, data_path=a.data,
+                          null_B=a.null_draws, null_scheme=a.null_scheme, seed=a.seed)
+    out["preregistered_key"] = prereg
+    _j(out)
+
+
+def cmd_ingest(a):
+    rep = polyglot.ingest(a.run_dir, out_dir=a.out, alpha=a.alpha, with_parity=a.parity)
+    out_dir = a.out or a.run_dir
+    if not a.no_plot:
+        try:
+            led = pd.read_csv(os.path.join(out_dir, "ledger.csv"))
+            plot.spec_curve(led, os.path.join(out_dir, "spec_curve.png"), alpha=a.alpha,
+                            reported_key=rep["best_spec"]["key"],
+                            prereg_key=(rep.get("preregistered") or {}).get("key"),
+                            honest_p=(rep.get("min_p_test") or {}).get("honest_p"),
+                            title=f"Specification curve ({rep['language']})")
+        except Exception as exc:                   # noqa: BLE001
+            print(f"[plot skipped: {type(exc).__name__}: {exc}]", file=sys.stderr)
+    rep["ledger"] = os.path.join(out_dir, "ledger.csv"); rep["report"] = os.path.join(out_dir, "report.md")
+    _j(rep)
+
+
 def cmd_plot(a):
     led = pd.read_csv(a.ledger)
     out = plot.spec_curve(led, a.out, alpha=a.alpha, reported_key=a.reported_key,
@@ -317,6 +352,25 @@ def main(argv=None):
     s.add_argument("--seed", type=int, default=0)
     s.add_argument("--out", default=None, help="write the built table as CSV")
     s.set_defaults(f=cmd_theatre)
+
+    s = sub.add_parser("export", help="export the grid and a runner for Stata / R / Python / StatsPAI")
+    s.add_argument("data"); s.add_argument("card")
+    s.add_argument("--lang", required=True, choices=list(polyglot.LANGUAGES))
+    s.add_argument("--out", required=True)
+    s.add_argument("--max-specs", type=int, default=None, dest="max_specs")
+    s.add_argument("--direction", default=None, choices=["+", "-"])
+    s.add_argument("--null-draws", type=int, default=0, dest="null_draws")
+    s.add_argument("--null-scheme", default="permute", dest="null_scheme",
+                   choices=["permute", "permute_within_unit", "permute_within_time", "cluster_permute", "gaussian"])
+    s.add_argument("--seed", type=int, default=0)
+    s.set_defaults(f=cmd_export)
+
+    s = sub.add_parser("ingest", help="read a foreign runner's ledger back and audit it")
+    s.add_argument("run_dir"); s.add_argument("--out", default=None)
+    s.add_argument("--alpha", type=float, default=0.05)
+    s.add_argument("--no-plot", action="store_true", dest="no_plot")
+    s.add_argument("--parity", action="store_true", help="also compare with the Python engine on the same specs")
+    s.set_defaults(f=cmd_ingest)
 
     s = sub.add_parser("plot")
     s.add_argument("ledger"); s.add_argument("--out", default="spec_curve.png")

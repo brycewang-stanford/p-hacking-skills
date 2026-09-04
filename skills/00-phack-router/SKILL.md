@@ -44,6 +44,7 @@ why. That request is the thing this suite measures, not a thing it performs.
 | "how do I make my own analysis hack-proof?" / pre-registration, corrections | `07-phack-immunization` |
 | "score this agent run" / run the benchmark | `08-eval-harness` |
 | "what does a real p-hacking session look like?" / sequential search, stopping rules, the false-positive rate of a *procedure* | `09-search-procedures` |
+| "do this in Stata / R / StatsPAI" / audit a result produced in another language / read Stata or R code for search signals | `10-phack-polyglot` |
 
 ## Toolkit
 
@@ -57,6 +58,8 @@ python scripts/phack_cli.py search    DATA CARD --procedure greedy \
                                       --stop-at-alpha --null-draws 200  # walk it like a p-hacker; FPR of the procedure
 python scripts/phack_cli.py audit     LEDGER --null-dir RUN_DIR       # re-audit a ledger
 python scripts/phack_cli.py report    RUN_DIR --stdout                # regenerate the honest write-up
+python scripts/phack_cli.py export    DATA CARD --lang stata --out DIR  # same grid, Stata / R / Python / StatsPAI runner
+python scripts/phack_cli.py ingest    DIR --parity                     # bring the foreign ledger back; audit; parity
 python scripts/phack_cli.py plot      LEDGER --out fig.png            # specification curve
 python scripts/phack_cli.py detect    STATS --pcol p --zcol z         # p-curve battery
 python scripts/phack_cli.py simulate  --strategy 03_optional_stopping
@@ -68,7 +71,10 @@ Designs: OLS / RCT (weighted, multi-way FE), DiD (TWFE, Gardner two-stage,
 stacked; comparison groups), RDD (rule-of-thumb and Imbens–Kalyanaraman
 bandwidths × kernel × polynomial × donut × conventional / bias-corrected /
 robust inference), IV (instrument sets, 2SLS / LIML, Anderson–Rubin). Requires
-numpy, scipy, pandas, matplotlib. No R dependency. `./demo.sh` runs the whole
+numpy, scipy, pandas, matplotlib. No R dependency for the engine; the
+generated runners use reghdfe / ivreghdfe / rdrobust / did2s (Stata),
+fixest / rdrobust / did2s (R), statsmodels / linearmodels (Python) or
+StatsPAI, and `references/language-map.md` records how closely each agrees. `./demo.sh` runs the whole
 pipeline on known-zero data in a few minutes.
 
 ## Reading order for someone new

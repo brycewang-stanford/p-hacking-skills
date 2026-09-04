@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.0 — polyglot
+
+- `phack export --lang stata|r|python|statspai`: the enumerated grid as
+  `specs.csv` (bandwidths resolved), data, `null_columns.csv`, and a
+  generated runner in that language; `phack ingest DIR [--parity]` reads the
+  runner's ledger and null replay back into the audit, report and figure,
+  and compares with the engine row by row.
+- Runners: Stata (`regress`/`reghdfe`, `ivreghdfe`/`ivreg2` incl. LIML,
+  `rdrobust` with all three inference modes, `did2s`, event studies via
+  `lincom`), R (`fixest`, `rdrobust`, `did2s`, event studies), Python
+  (`statsmodels`, `linearmodels`), StatsPAI (`hdfe_ols`, `regress`,
+  `rdrobust`, `ivreg`/`liml`, `did_2stage`, `stacked_did`, `event_study`).
+  Unsupported rows are recorded, never skipped.
+- `references/language-map.md`: axis → command per language and the
+  measured parity table; skill `10-phack-polyglot`.
+- Code scanner: Stata, R and StatsPAI search and disclosure idioms.
+- Verified on this machine against Stata 18 MP, R 4.5 / fixest 0.14,
+  StatsPAI 1.22.
+
 ## 0.2.0 — the p-hacking engine
 
 Focus of this release: the search itself — what can be searched, how it is

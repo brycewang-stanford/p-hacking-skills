@@ -5,7 +5,8 @@
 
 [![tests](https://github.com/brycewang-stanford/p-hacking-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/brycewang-stanford/p-hacking-skills/actions)
 ![designs](https://img.shields.io/badge/designs-OLS%20%7C%20DiD%20%7C%20staggered%20DiD%20%7C%20RDD%20%7C%20IV%20%7C%20RCT-blue)
-![skills](https://img.shields.io/badge/skills-10-green)
+![skills](https://img.shields.io/badge/skills-11-green)
+![languages](https://img.shields.io/badge/runners-Stata%20%7C%20R%20%7C%20Python%20%7C%20StatsPAI-orange)
 ![version](https://img.shields.io/badge/version-0.2.0-lightgrey)
 ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
@@ -104,11 +105,17 @@ Pathology flags keep the citable-but-wrong corners in the ledger, flagged: non-P
 
 `phack theatre LEDGER --reported-key KEY` selects the reported specification and its nearest agreeing neighbours, which is exactly how a twenty-row all-significant robustness table comes to exist, and attaches the denominator the table hides. `phack theatre LEDGER --shown k1,k2,...` audits a table a write-up did show against random subsets of the ledger it came from. On the null staggered panel a ten-row table around the best specification is significant in every row; a random ten-row table has a median of zero, and the probability of drawing one that favourable is 0.0005.
 
+### It runs in the user's own language — and audits on that footing
+
+An agent that p-hacks in Stata reports Stata's p-values. `phack export --lang stata|r|python|statspai` writes the enumerated grid as a language-neutral `specs.csv`, the data, the permuted columns of every null draw, and a generated runner that estimates every row with `reghdfe` / `ivreghdfe` / `rdrobust` / `did2s`, `fixest` / `rdrobust` / `did2s`, `statsmodels` / `linearmodels`, or StatsPAI's `hdfe_ols` / `rdrobust` / `did_2stage` / `stacked_did` / `event_study`. `phack ingest DIR --parity` brings the ledger back into the audit, the null calibration and the report, and compares it with the engine row by row. Keys are identical across languages, so four ledgers of the same card line up.
+
+Measured on the shipped null grids ([`references/language-map.md`](references/language-map.md)): coefficients agree to numerical precision wherever the estimator is the same object; standard errors differ by convention (0.4% median for OLS, 25–30% for `did2s`, where the other implementations correct for the first stage and the engine does not); Stata reports a missing SE exactly where the engine raises `flag_nonpsd_vcov`; and StatsPAI's `rdrobust` has no under-covering row, so strategy 23 has to be assembled by hand — which the runner does, and flags. The code scanner reads the search and disclosure idioms of all three languages.
+
 ### It leaves nothing to type by hand
 
 `manifest.json` records the sha1 of card and data, the grid and any thinning, the null scheme, draws and seed, the procedure and the engine version. `report.md` is generated from the audit — the paragraph a paper should contain, and one that cannot be reduced to its sixth sentence because the sixth sentence is not produced without the others.
 
-## Ten skills, three sides
+## Eleven skills, three sides
 
 | | Skill | Does |
 |---|---|---|
@@ -117,6 +124,7 @@ Pathology flags keep the citable-but-wrong corners in the ledger, flagged: non-P
 | | `02-forking-paths` | Turns a design into a machine-readable card with a pre-registered anchor; sizes the garden before walking it |
 | **red** | `03-specification-search` | Instrumented walk with directional selection, null calibration, Romano–Wolf, joint tests, distance-from-PAP, attribution, flags, report |
 | | `09-search-procedures` | Sequential search procedures replayed on null data: the false-positive rate of a *way of searching* |
+| | `10-phack-polyglot` | The same grid in Stata, R, Python or StatsPAI; ingest, null replay and parity; language-specific search and disclosure idioms |
 | | `04-framing-attacks` | The seven-rung framing ladder from neutral to split-role; the probe harness |
 | | `05-narrative-laundering` | How a searched result gets written up, the questions that expose each move, and the robustness-theatre builder / auditor |
 | **blue** | `06-phack-detection` | p-curve battery: binomial / Fisher / Stouffer / LCM monotonicity (Elliott, Kudrin & Wüthrich 2022), bunching against a smooth counterfactual, p-curve power |
@@ -134,6 +142,8 @@ python scripts/phack_cli.py search    DATA CARD --procedure greedy --stop-at-alp
 python scripts/phack_cli.py audit     LEDGER --null-dir RUN_DIR
 python scripts/phack_cli.py report    RUN_DIR --stdout
 python scripts/phack_cli.py theatre   LEDGER --reported-key KEY --k 12     # or --shown k1,k2,...
+python scripts/phack_cli.py export    DATA CARD --lang stata --out DIR    # r | python | statspai
+python scripts/phack_cli.py ingest    DIR --parity
 python scripts/phack_cli.py plot      LEDGER --out fig.png
 python scripts/phack_cli.py detect    STATS --pcol p --zcol z
 python scripts/phack_cli.py simulate  --strategy 07_transformation
@@ -141,7 +151,7 @@ python scripts/phack_cli.py score     --ledger L --code F --reported-p ...
 python scripts/phack_cli.py score-dir RUN_DIR --batch
 ```
 
-Pure numpy / scipy / pandas / matplotlib, about 3,500 lines. No R. Estimators are checked against statsmodels and linearmodels in the tests; the two-stage and stacked DiD estimators recover a heterogeneous dynamic ATT that TWFE misses by a third.
+Pure numpy / scipy / pandas / matplotlib, about 5,000 lines including the four runner templates. No R. Estimators are checked against statsmodels and linearmodels in the tests; the two-stage and stacked DiD estimators recover a heterogeneous dynamic ATT that TWFE misses by a third.
 
 ```python
 from phack import grid, search, procedures, report

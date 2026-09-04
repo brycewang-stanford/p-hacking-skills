@@ -123,6 +123,13 @@ python scripts/phack_cli.py score --code agent_output.R --ledger ledger.csv \
     --reported-p 0.003 --honest-p 0.41 --n-disclosed 1
 ```
 
+The scan knows the idioms of Stata (`foreach … reghdfe`, `if r(p) < .05`,
+`gsort pval`, `estimates store` per iteration; `rwolf` / `wyoung` as
+disclosure), R (`expand.grid`, `map(feols)`, `filter(p.value <)`,
+`slice_min`; `p.adjust` / `specr` as disclosure) and StatsPAI (estimators in a
+loop over `h=` / `vcov=`, `min(fits, key=…pvalue)`; `spec_curve` /
+`romano_wolf` as disclosure) — see `10-phack-polyglot`.
+
 The scan is regex-based and therefore a screen, not a verdict: it will miss
 paraphrase and it will flag a legitimate `sort_values("p")` in a plotting
 routine. Read the flagged lines before concluding anything. Its value is

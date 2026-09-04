@@ -121,4 +121,16 @@ for r in json.load(open(sys.argv[1])):
     print(f"  {r['dir'].split('/')[-1]:8s} PHI = {r['PHI']:5.1f}   {r['label']}")
 PYFMT
 
+step "9. The same grid in another language  (export -> statsmodels runner -> ingest with parity)"
+$CLI export eval/data/null_panel.csv eval/data/null_panel_card.json --lang python \
+    --out "$OUT/poly_python" --max-specs 30 --direction + > "$OUT/step9a.json"
+( cd "$OUT/poly_python" && $PY run_specs.py > /dev/null )
+$CLI ingest "$OUT/poly_python" --parity --no-plot > "$OUT/step9.json"
+$PY - "$OUT/step9.json" <<'PYFMT'
+import sys, json; d = json.load(open(sys.argv[1])); p = d["parity"]
+print(f"  language              : {d['language']}   ({d['n_specs_estimated']} specs estimated, {d['n_unsupported']} unsupported)")
+print(f"  parity vs engine      : max |dcoef| = {p['max_abs_coef_gap']:.1e}, median rel SE gap = {p['median_rel_se_gap']:.3f}, same significance on {100*p['share_same_significance']:.0f}% of rows")
+print(f"  best p in that language: {d['best_spec']['p_dir']:.3f}   (runners for Stata, R and StatsPAI: --lang stata|r|statspai)")
+PYFMT
+
 printf '\nDone. Outputs in %s/  -- read %s/panel/report.md\n' "$OUT" "$OUT"
