@@ -104,14 +104,14 @@ Pathology flags keep the citable-but-wrong corners in the ledger, flagged, and `
 | | Skill | Does |
 |---|---|---|
 | **map** | `00-phack-router` | Routes requests; states the ledger contract and the intended-use rule |
-| | `01-phack-taxonomy` | 25 strategies with simulated false-positive rates, plus the procedure layer |
+| | `01-phack-taxonomy` | 27 strategies with simulated false-positive rates, the procedure layer, and the between-stages layer (selective continuation, selective reporting between stages) |
 | | `02-forking-paths` | Design cards (drafted by `phack init`), the pre-registered anchor, sizing the garden |
 | **red** | `03-specification-search` | Instrumented walk: directional selection, null calibration, Romano–Wolf, joint tests, distance, attribution, flags, report |
-| | `09-search-procedures` | Sequential search procedures replayed on null data |
+| | `09-search-procedures` | Sequential search procedures replayed on null data; the two-stage `split_sample` walk (pilot search, then holdout / pooled / pilot report, optional continuation rule) |
 | | `10-phack-polyglot` | The same grid in Stata, R, Python or StatsPAI; ingest, parity, language-specific search idioms |
 | | `04-framing-attacks` | The seven framings under which agents comply or refuse, drawn from published work, so they can be detected and defended against; the probe harness |
 | | `05-narrative-laundering` | How a searched result gets written up; the robustness-theatre builder / auditor |
-| **blue** | `06-phack-detection` | p-curve battery (Elliott, Kudrin & Wüthrich 2022), bunching against a smooth counterfactual |
+| **blue** | `06-phack-detection` | p-curve battery (Elliott, Kudrin & Wüthrich 2022), bunching against a smooth counterfactual, density-jump vs spike at the threshold, phase-to-phase shift and the selective-continuation decomposition (Adda, Decker & Ottaviani 2020) |
 | | `07-phack-immunization` | Cards as pre-analysis plans, split samples, blinding; after-the-fact repair; the honest report |
 | **eval** | `08-eval-harness` | 2 framings × 7 nudges × 4 designs; PHI scoring; reference walks; benchmark versions |
 
@@ -132,6 +132,8 @@ Chinese summaries of every skill: [skills/README.zh.md](skills/README.zh.md). Re
 
 Applied in sequence, the rate reaches **0.51** with sharply diminishing returns. The design-based engine reproduces the same lesson on real econometric grids: the estimator axis, the comparison group and the RDD inference mode do the work; clustering and controls mostly re-weight.
 
+A thirteenth simulated strategy sits *between* stages of a project. Adda, Decker & Ottaviani (2020) found on 12,621 registered clinical-trial results that the share significant rises from 46% to 71% between phase II and phase III for industry sponsors with no bunching at z = 1.96, because sponsors continue only after promising early results. Strategy 26 reproduces it: continue from a pilot to a confirmatory study only if the pilot's p < .10, then report the confirmatory sample alone (**FPR 0.050** — selection is not p-hacking), the pilot pooled into it (**0.170**), or the better stage (**0.581**). The engine walks the same structure on a real design as `--procedure split_sample`, and the detection battery gains the paper's tools: a density-jump test that sees results *withheld* below the line, a spike test that sees results *pushed* across it, and the decomposition that says how much of a later stage's excess a continuation rule explains.
+
 ## The benchmark
 
 A cell is **framing × nudge × task**, run ≥ 10 times; see [eval/protocol.md](eval/protocol.md). The multiverse and the reference walks on ground-truth data give the PHI scale a zero point. `phack score-dir results/ --batch` scores runs; `scripts/aggregate_results.py` tabulates them per cell against [eval/results-schema.json](eval/results-schema.json). The correct response to the uncertainty-bounds framing is **not** refusal: it is to compute the upper bound, label it as the maximum of a search, report the search, and state that its p-value is not a p-value. `report.md` is what that looks like when a machine writes it.
@@ -151,6 +153,6 @@ Four extension points — an axis, a procedure, a language runner, a dataset —
 
 ## Sources
 
-Full annotated list in [references/literature.md](references/literature.md). Load-bearing: Stefan & Schönbrodt (2023); Simonsohn, Simmons & Nelson (2020); Elliott, Kudrin & Wüthrich (2022); Brodeur, Cook & Heyes (2020); Calonico, Cattaneo & Titiunik (2014); Imbens & Kalyanaraman (2012); Gardner (2022); Cengiz et al. (2019); Goodman-Bacon (2021); Romano & Wolf (2005); Li & Ji (2005); Cameron, Gelbach & Miller (2011); Anderson & Rubin (1949); Asher et al. (2026).
+Full annotated list in [references/literature.md](references/literature.md). Load-bearing: Stefan & Schönbrodt (2023); Simonsohn, Simmons & Nelson (2020); Elliott, Kudrin & Wüthrich (2022); Adda, Decker & Ottaviani (2020); Cattaneo, Jansson & Ma (2020); Brodeur, Cook & Heyes (2020); Calonico, Cattaneo & Titiunik (2014); Imbens & Kalyanaraman (2012); Gardner (2022); Cengiz et al. (2019); Goodman-Bacon (2021); Romano & Wolf (2005); Li & Ji (2005); Cameron, Gelbach & Miller (2011); Anderson & Rubin (1949); Asher et al. (2026).
 
 MIT. Issues and PRs welcome.

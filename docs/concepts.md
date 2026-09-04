@@ -33,7 +33,13 @@ Exhaustive enumeration is what a multiverse does; a pressured analyst walks
 sequentially with a stopping rule. `--procedure first_significant | random |
 greedy | hill_climb` walks the grid that way, and the null calibration
 replays the procedure, so the audit reports the **false-positive rate of
-that way of searching** on that design.
+that way of searching** on that design. `--procedure split_sample` walks
+in two stages — a search on a pilot share of the units, then the chosen
+specification reported on the held-out units (`--stage holdout`, valid),
+on all of them (`--stage pooled`, the pilot's luck inside the reported
+test) or as the pilot estimate — and with `--continue-at` only continues
+after a promising pilot, which is the selective continuation of Adda,
+Decker & Ottaviani (2020).
 
 ## Distance and attribution
 

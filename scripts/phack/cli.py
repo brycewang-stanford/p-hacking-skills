@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse, hashlib, json, os, sys
 
 import numpy as np
+from scipy import stats
 import pandas as pd
 
 from . import (grid, search, detect, simulate, score, inference, plot, rundir, procedures, report,
@@ -59,7 +60,8 @@ def _procedure(a):
     return procedures.make(a.procedure, report="first" if a.report_first else "best",
                            budget=a.budget, start=a.start_key, order=a.order,
                            stop_at_alpha=a.stop_at_alpha, max_rounds=a.max_rounds,
-                           patience=a.patience)
+                           patience=a.patience, inner=a.inner, pilot_share=a.pilot_share,
+                           stage=a.stage, continue_at=a.continue_at)
 
 
 def cmd_search(a):
@@ -74,7 +76,9 @@ def cmd_search(a):
     if thinned:
         print(f"[thinned to {len(specs)} specifications; pre-registered spec kept]", file=sys.stderr)
     proc = _procedure(a)
-    if proc is not None and a.start_key is None and prereg and a.procedure in ("greedy", "hill_climb"):
+    if proc is not None and a.start_key is None and prereg and (
+            a.procedure in ("greedy", "hill_climb")
+            or (a.procedure == "split_sample" and a.inner in ("greedy", "hill_climb"))):
         proc.start = prereg               # a search starts where an honest analysis would
     led = search.flag_pathologies(search.run(df, card, specs=specs, progress=a.progress,
                                             procedure=proc, seed=a.seed, alpha=a.alpha,
@@ -196,15 +200,36 @@ def cmd_detect(a):
     z = df[a.zcol].to_numpy() if a.zcol and a.zcol in df else None
     if p is None and z is None:
         sys.exit(f"neither --pcol nor --zcol found; columns are {list(df.columns)}")
+    if z is None:
+        z = stats.norm.isf(np.asarray(p, float) / 2)
+    if a.stagecol:
+        if a.stagecol not in df:
+            sys.exit(f"--stagecol {a.stagecol!r} not in {list(df.columns)}")
+        stages = sorted(df[a.stagecol].dropna().unique(), key=str)
+        if len(stages) != 2:
+            sys.exit(f"--stagecol must take exactly two values (early, late); found {stages}")
+        early = (df[a.stagecol] == stages[0]).to_numpy()
+        cont = df.loc[early, a.contcol].to_numpy(bool) if a.contcol and a.contcol in df else None
+        out = detect.phase_report(z[early], z[~early], continued=cont, seed=a.seed)
+        out["stages"] = {"early": str(stages[0]), "late": str(stages[1])}
+        _j(out)
+        return
     _j(detect.report(pvals=p, zstats=z, alpha=a.alpha, seed=a.seed))
 
 
 def cmd_simulate(a):
-    if a.workflow:
+    if a.continuation:
+        pop = simulate.continuation_shift(n_projects=a.n_sims, conceal=a.conceal, seed=a.seed)
+        out = {k: v for k, v in pop.items() if not isinstance(v, np.ndarray)}
+        out["detect"] = detect.phase_report(pop["z_pilot"], pop["z_main_reported"],
+                                            continued=pop["continued"], seed=a.seed)
+        _j(out)
+    elif a.workflow:
         _j(simulate.workflow(a.workflow.split(","), n_sims=a.n_sims, seed=a.seed))
     elif a.strategy:
+        kw = {"report": a.report} if a.report else {}
         _j(simulate.false_positive_rate(a.strategy, n_sims=a.n_sims,
-                                        seed=a.seed, ambitious=a.ambitious))
+                                        seed=a.seed, ambitious=a.ambitious, **kw))
     else:
         _j(simulate.sweep(n_sims=a.n_sims, seed=a.seed, ambitious=a.ambitious))
 
@@ -331,6 +356,15 @@ def main(argv=None):
                    help="greedy / hill_climb / random: stop as soon as p < alpha (modest hacking)")
     s.add_argument("--max-rounds", type=int, default=None, dest="max_rounds")
     s.add_argument("--patience", type=int, default=None)
+    s.add_argument("--inner", default="exhaustive",
+                   choices=[p for p in procedures.PROCEDURES if p != "split_sample"],
+                   help="split_sample: the procedure walked on the pilot half")
+    s.add_argument("--pilot-share", type=float, default=0.5, dest="pilot_share",
+                   help="split_sample: share of units (or rows) in the pilot")
+    s.add_argument("--stage", default="pooled", choices=["holdout", "pooled", "pilot"],
+                   help="split_sample: which estimate of the pilot's choice is reported")
+    s.add_argument("--continue-at", type=float, default=None, dest="continue_at",
+                   help="split_sample: run the confirmatory stage only if the pilot's p is below this")
     s.add_argument("--seed", type=int, default=0)
     s.add_argument("--progress", action="store_true")
     s.add_argument("--no-plot", action="store_true", dest="no_plot")
@@ -377,6 +411,10 @@ def main(argv=None):
     s = sub.add_parser("detect")
     s.add_argument("stats"); s.add_argument("--pcol", default="p")
     s.add_argument("--zcol", default="z"); s.add_argument("--alpha", type=float, default=0.05)
+    s.add_argument("--stagecol", default=None,
+                   help="column with two values (early stage, late stage): run the across-stages battery")
+    s.add_argument("--contcol", default=None,
+                   help="with --stagecol: boolean column on early-stage rows, 1 if the project continued")
     s.add_argument("--seed", type=int, default=0); s.set_defaults(f=cmd_detect)
 
     s = sub.add_parser("simulate")
@@ -385,6 +423,13 @@ def main(argv=None):
                    help="comma-separated strategy names applied in sequence")
     s.add_argument("--n-sims", type=int, default=2000, dest="n_sims")
     s.add_argument("--ambitious", action="store_true")
+    s.add_argument("--report", default=None, choices=["main", "pooled", "best"],
+                   help="26_selective_continuation: what the continued project reports")
+    s.add_argument("--continuation", action="store_true",
+                   help="simulate a population of two-stage projects (--n-sims projects) and run the "
+                        "across-stages detection battery on it")
+    s.add_argument("--conceal", type=float, default=0.0,
+                   help="--continuation: probability a non-significant confirmatory result is withheld")
     s.add_argument("--seed", type=int, default=0); s.set_defaults(f=cmd_simulate)
 
     s = sub.add_parser("score")

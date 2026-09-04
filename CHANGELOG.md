@@ -1,5 +1,43 @@
 # Changelog
 
+## Unreleased — between stages (after Adda, Decker & Ottaviani 2020, PNAS)
+
+The paper: 12,621 registered clinical-trial results show no spike at
+z = 1.96, a level shift at 1.96 in phase III for small sponsors only, and a
+smooth rise in the share significant from phase II to phase III that a
+continuation rule estimated on phase II largely explains for large sponsors
+and does not for small ones. Three things the suite could not do before.
+
+- **Detection.** `detect.density_jump_test` (Cattaneo–Jansson–Ma local
+  polynomial density on each side of the threshold, bootstrap SE) and
+  `detect.spike_test` (excess mass just past the line against the density
+  *beyond* it, with the extrapolation's own variance) separate a spike
+  (results pushed across: p-hacking) from a level shift (results below the
+  line missing: selective reporting). `detect.phase_shift_test`,
+  `detect.continuation_decomposition` (the paper's logit-and-reweight
+  decomposition of a later stage's excess significance into explained and
+  unexplained parts, with a bootstrap SE) and `detect.phase_report`. The
+  battery's `report()` now prints a `threshold_signature`; `phack detect
+  --stagecol --contcol` runs the across-stages battery.
+- **Simulation.** Strategy `26_selective_continuation` (`--report main |
+  pooled | best`): a fresh confirmatory sample keeps its size (0.050);
+  pooling the pilot does not (0.170); reporting the better stage is worse
+  (0.581). `simulate.continuation_shift` generates a population with
+  heterogeneous effects, a logistic continuation rule and optional
+  concealment (`phack simulate --continuation --conceal`).
+- **Engine.** `--procedure split_sample`: an inner procedure searches on a
+  pilot share of the units, then the chosen specification is reported on
+  the held-out units (`--stage holdout`, the split-sample immunisation,
+  now measurable), on all of them (`--stage pooled`) or as the pilot
+  estimate; `--continue-at` makes the confirmatory stage conditional on a
+  promising pilot. The ledger carries `p_pilot` / `coef_pilot` / `n_pilot`,
+  the reported row carries the stage's own estimate, and the null replay
+  reports the false-positive rate among the draws that reported anything
+  (`null_share_reporting_any`).
+- Taxonomy gains a fourth layer (strategies 26 and 27); literature,
+  skills 01 / 06 / 07 / 09 and the docs updated. No dataset, card, prompt,
+  weight or protocol changed: the benchmark version is unchanged.
+
 ## 0.4.1 — positioning
 
 - Repositioned as a *specification-search audit and p-hacking benchmark*:

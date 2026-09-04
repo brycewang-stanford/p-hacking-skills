@@ -9,6 +9,16 @@ evaluation without an R round-trip. Data are always generated under a TRUE NULL,
 so every rejection counted here is a false positive by construction.
 
 Each strategy returns (p_original, p_hacked, n_attempts).
+
+Strategy 26 is not from the compendium. It is the across-stages selection
+that Adda, Decker & Ottaviani (2020, PNAS) study on ClinicalTrials.gov:
+continue from a pilot to a confirmatory study only after a promising pilot.
+With a fresh confirmatory sample that is not p-hacking at all -- the
+confirmatory test keeps its size -- and the strategy is here to make that
+point measurable, and to measure what happens once the pilot is pooled in.
+`continuation_shift` simulates the population version: heterogeneous true
+effects, a continuation rule, optional concealment, and the phase II / phase
+III distributions the detection module is then asked to tell apart.
 """
 from __future__ import annotations
 
@@ -16,7 +26,7 @@ import numpy as np
 from scipy import stats
 
 __all__ = ["STRATEGIES", "run_strategy", "false_positive_rate", "sweep",
-           "workflow"]
+           "workflow", "continuation_shift"]
 
 
 # ---------------------------------------------------------------- helpers ---
@@ -240,6 +250,88 @@ def s12_rounding(rng, n=100, level=0.06, alpha=0.05, **_):
     return float(p0), float(reported), 1
 
 
+def s26_selective_continuation(rng, n1=50, n2=100, go=0.10, report="pooled",
+                               alpha=0.05, ambitious=False, max_pilots=200, **_):
+    """26. Selective continuation across stages (Adda, Decker & Ottaviani 2020).
+
+    A pilot of n1 per arm decides whether the confirmatory study of n2 per arm
+    is run: continue only if the pilot's p < `go`. What a registry of
+    confirmatory results sees is the population *conditional on continuation*,
+    so pilots are redrawn until one clears the bar (`n_attempts` counts them).
+    Then the project reports:
+
+        'main'    the confirmatory sample alone. A valid test: the false-positive
+                  rate stays at alpha. Selective continuation is not p-hacking.
+        'pooled'  pilot + confirmatory analysed as one study. The favourable
+                  pilot draw is inside the reported statistic: optional stopping
+                  with one lenient interim look.
+        'best'    the best of pilot-only, main-only and pooled: selective
+                  reporting across the stages.
+
+    Returns (p_main, p_reported, n_pilots): p_main is the honest confirmatory p.
+    """
+    for k in range(1, max_pilots + 1):
+        a1, b1 = rng.normal(size=n1), rng.normal(size=n1)
+        p1 = _ttest(a1, b1)
+        if p1 < go:
+            break
+    a2, b2 = rng.normal(size=n2), rng.normal(size=n2)
+    p_main = _ttest(a2, b2)
+    if report == "main":
+        return float(p_main), float(p_main), k
+    p_pool = _ttest(np.r_[a1, a2], np.r_[b1, b2])
+    if report == "pooled":
+        return float(p_main), float(p_pool), k
+    if report == "best":
+        return float(p_main), float(min(p1, p_main, p_pool)), k
+    raise KeyError(f"report must be 'main', 'pooled' or 'best', not {report!r}")
+
+
+def continuation_shift(n_projects=4000, n1=60, n2=60, share_null=0.5, effect_sd=0.35,
+                       logit_a=-2.5, logit_b=1.2, signal_sd=1.0, conceal=0.0,
+                       threshold=1.96, seed=0) -> dict:
+    """The population version: incentives shaping the distribution across phases.
+
+    Each project has a true effect delta (zero with probability `share_null`,
+    else half-normal with sd `effect_sd`), a registered pilot z (n1 per arm)
+    and, if continued, a fresh confirmatory z (n2 per arm). The sponsor
+    continues with probability logistic(a + b * |s|) where s is its own read
+    of the pilot -- the same signal plus independent noise of sd `signal_sd`
+    -- so the registered z is a noisy public reflection of what drove the
+    decision. That is the assumption behind the paper's counterfactual
+    (expected later-stage z equals the earlier-stage z, conditional on
+    continuing), and it makes `detect.continuation_decomposition` exact in
+    expectation on this DGP. `conceal` is the probability that a
+    non-significant confirmatory result goes unreported: the small-sponsor
+    pattern, which the decomposition should leave *unexplained* and the
+    density-jump test should see.
+
+    Returns the arrays the detection module wants plus the shares by stage.
+    """
+    rng = np.random.default_rng(seed)
+    N = int(n_projects)
+    delta = np.where(rng.random(N) < share_null, 0.0, np.abs(rng.normal(0, effect_sd, N)))
+    z_pilot = delta * np.sqrt(n1 / 2) + rng.normal(size=N)
+    signal = delta * np.sqrt(n1 / 2) + rng.normal(0, signal_sd, N)
+    pi = 1 / (1 + np.exp(-(logit_a + logit_b * np.abs(signal))))
+    continued = rng.random(N) < pi
+    z_main = np.full(N, np.nan)
+    z_main[continued] = delta[continued] * np.sqrt(n2 / 2) + rng.normal(size=int(continued.sum()))
+    reported = continued & ~((np.abs(z_main) < threshold) & (rng.random(N) < conceal))
+    zl = z_main[reported]
+    return {
+        "z_pilot": z_pilot, "continued": continued, "z_main": z_main, "reported": reported,
+        "z_main_reported": zl, "delta": delta,
+        "share_null": share_null, "n_projects": N, "n_continued": int(continued.sum()),
+        "n_reported": int(reported.sum()), "mean_continuation": float(continued.mean()),
+        "share_significant_pilot": float(np.mean(np.abs(z_pilot) > threshold)),
+        "share_significant_main_all": float(np.mean(np.abs(z_main[continued]) > threshold)),
+        "share_significant_main_reported": float(np.mean(np.abs(zl) > threshold)),
+        "false_positive_share_main_reported": float(np.mean(
+            (np.abs(zl) > threshold) & (delta[reported] == 0))) if reported.any() else np.nan,
+    }
+
+
 STRATEGIES = {
     "01_selective_dv": s01_selective_dv,
     "02_selective_iv": s02_selective_iv,
@@ -253,6 +345,7 @@ STRATEGIES = {
     "10_imputation": s10_imputation,
     "11_subgroup": s11_subgroup,
     "12_rounding": s12_rounding,
+    "26_selective_continuation": s26_selective_continuation,
 }
 
 

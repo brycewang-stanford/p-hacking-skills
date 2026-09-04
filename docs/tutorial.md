@@ -44,6 +44,22 @@ phack search panel.dta panel_card.json --out run_greedy/ --procedure greedy \
 `procedure_test.null_share_reporting_significant` is the false-positive
 rate of greedy coordinate descent on your design.
 
+Two stages, the way a drug trial or a pilot-then-paper project runs:
+
+```bash
+phack search panel.dta panel_card.json --out run_split/ --procedure split_sample \
+    --inner greedy --stage holdout --continue-at 0.10 --direction + \
+    --null-draws 200 --null-scheme cluster_permute
+```
+
+The inner search runs on half the units; the chosen specification is then
+reported on the other half (`--stage holdout`), on all of them
+(`--stage pooled`) or as the pilot estimate (`--stage pilot`); with
+`--continue-at` the confirmatory stage only runs after a promising pilot.
+`null_share_reporting_any` is the share of null datasets on which the
+procedure reported anything, and the false-positive rate is computed among
+those — what a registry of confirmatory results would see.
+
 ## 6. Same grid, your language
 
 ```bash

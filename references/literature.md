@@ -68,6 +68,40 @@ design-risk ordering in `references/econ-dof-maps.md`.
 
 **Gerber & Malhotra (2008).** The caliper test.
 
+**Adda, Decker & Ottaviani (2020),** "P-hacking in clinical trials and how
+incentives shape the distribution of results across phases", *PNAS*
+117(24):13386–13392. 12,621 primary-outcome p-values from 4,977 phase II and
+III drug trials on ClinicalTrials.gov, converted to z = −Φ⁻¹(p/2). Three
+findings this suite builds on. (i) No spike just past z = 1.96 anywhere, and
+no density discontinuity in phase II: registered results look more honest
+than published ones. (ii) A discontinuity at 1.96 in phase III for *small*
+industry sponsors only — a level shift, not a spike, read as strategic
+non-reporting of results below the line. (iii) The share significant rises
+from 45.7% in phase II to 70.6% in phase III for industry sponsors (34.7% to
+34.8% for non-industry) with a smooth distribution: sponsors continue to
+phase III after promising phase II results, so the later stage inherits the
+selection. A logit of continuation on the phase II z, and a reweighting of
+the phase II distribution by the fitted continuation probabilities, explains
+about 85% of the phase III excess for the ten largest sponsors and about 29%
+for small ones; the unexplained 18.4 points for small sponsors is what is
+left for selective reporting. Implemented as `detect.density_jump_test`,
+`detect.phase_shift_test`, `detect.continuation_decomposition` and
+`detect.phase_report`; simulated as `simulate.continuation_shift` and, at
+the level of a single project, strategy `26_selective_continuation`; and
+walked by the engine as the `split_sample` procedure. The lesson for the
+red side is that *selection between stages is not p-hacking* — a fresh
+confirmatory sample keeps its size — until the pilot is pooled into the
+confirmatory test; the lesson for the blue side is that it leaves no
+threshold signature at all.
+
+**Cattaneo, Jansson & Ma (2020),** "Simple local polynomial density
+estimators", *JASA* 115(531):1449–1455. The density-jump test in
+`detect.density_jump_test`: regress the empirical CDF on a local polynomial
+in (z − c) with kernel weights on each side of the cutoff; the density is the
+fitted slope. No pre-binning, so no bin-alignment choice. Standard errors here
+are bootstrapped rather than taken from their asymptotic formula. **McCrary
+(2008),** *J. Econometrics* 142(2), is the binned predecessor.
+
 **Simonsohn, Nelson & Simmons (2014),** "p-curve: a key to the file drawer",
 *JEP: General*. The p-curve power estimate implemented in `detect.pcurve_power`.
 

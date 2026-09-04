@@ -17,7 +17,7 @@ from phack import grid, search, procedures, report, polyglot, verify, bench, ini
 | `search.null_calibration(df, card, B=, scheme=, procedure=, n_jobs=)` | `NullDraws` |
 | `search.audit(ledger, null=, preregistered_key=, direction=)` | the audit dict |
 | `search.nearest_significant`, `search.axis_influence`, `search.manifest` | diagnostics, manifest |
-| `procedures.make(name, **params)` | `exhaustive`, `first_significant`, `random`, `greedy`, `hill_climb` |
+| `procedures.make(name, **params)` | `exhaustive`, `first_significant`, `random`, `greedy`, `hill_climb`, `split_sample` (two stages: `inner`, `pilot_share`, `stage=holdout|pooled|pilot`, `continue_at`) |
 | `report.honest_report(audit, manifest, card)` / `report.summary_lines(audit)` | Markdown / terminal |
 | `theatre.build_table`, `theatre.audit_table` | robustness theatre |
 | `polyglot.export(df, card, specs, dir, lang=, null_B=)` / `polyglot.ingest(dir)` / `polyglot.parity(dir)` | other languages |

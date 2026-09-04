@@ -39,10 +39,14 @@ phack verify phack_out/                                                   # 第�
 ## 引擎做什么
 
 1. **枚举网格。** 设计卡片（JSON，有正式 schema）每个键是一个研究者自由度；`preregistered` 块指定诚实分析者会事先承诺的那一个规格。支持 OLS / RCT、DiD（TWFE、Gardner 两阶段、stacked、对照组选择）、事件研究（窗口、参照期、估计目标）、RDD（ROT / IK 带宽 × 倍数、核、多项式、甜甜圈、常规 / 偏差修正 / CCT robust 推断）、IV（工具子集、2SLS / LIML、每行记录一阶段 F 与 Anderson–Rubin p）。
-2. **走网格。** 穷举，或者像 p-hacker 一样按顺序走并设停止规则（`first_significant`、`random`、`greedy` 坐标下降、`hill_climb`）；零校准会**重放同一过程**，给出"这种搜索方式在这个设计上"的假阳性率。
+2. **走网格。** 穷举，或者像 p-hacker 一样按顺序走并设停止规则（`first_significant`、`random`、`greedy` 坐标下降、`hill_climb`）；零校准会**重放同一过程**，给出"这种搜索方式在这个设计上"的假阳性率。`split_sample` 走两阶段：先在试点样本上搜，再把选中的规格在留出样本（`--stage holdout`，诚实）、全样本（`--stage pooled`，试点的运气进了报告的检验）或试点样本上报告；`--continue-at` 只在试点有希望时才进入确证阶段——这就是 Adda, Decker & Ottaviani (2020) 在临床试验注册库里看到的"选择性延续"。
 3. **算出搜索值多少。** 对最优规格：Bonferroni、Li–Ji 有效检验数、Romano–Wolf、零校准诚实 p；对整条曲线：Simonsohn 联合检验；再加上**与预注册规格的距离**（差几个选择就能显著）和**轴归因**（哪个旋钮在做功）。病理标记把"可引用但错误"的角落留在账本里并标出来。
 4. **写报告，可核验。** `report.md` 从审计生成，数字不可能与账本漂移；`manifest.json` 记录数据、卡片、账本、审计的哈希；`phack verify` 逐项核对。`phack bench` 冻结与检查基准版本；`bench.seal` 对保留集做哈希承诺而不公开内容。
 5. **在你的语言里跑。** `phack export` 导出语言无关的规格表、数据和零假设置换列，并生成 Stata（reghdfe / ivreghdfe / rdrobust / did2s）、R（fixest / rdrobust / did2s）、Python（statsmodels / linearmodels）或 StatsPAI 的执行脚本；`phack ingest --parity` 接回并与引擎逐行比对，一致性表见 `references/language-map.md`。
+
+## 阶段之间：选择不是操纵
+
+Adda, Decker & Ottaviani (2020, *PNAS*) 分析了 ClinicalTrials.gov 上 12,621 个主要结局的 p 值：z = 1.96 处没有尖峰；只有小型企业赞助的 III 期试验在 1.96 处有一个**台阶**（线下的结果缺失，而不是被推过线）；企业赞助试验的显著比例从 II 期的 46% 升到 III 期的 71%，而分布是平滑的——因为赞助方只在 II 期有希望时才做 III 期。本仓库把这三件事都变成可测量的对象：模拟策略 26（`--report main` 时假阳性率 0.050，说明选择性延续本身不是 p-hacking；`--report pooled` 0.170；`--report best` 0.581）、`split_sample` 搜索过程、以及检测端的密度跳跃检验（看得见"藏起来"）、尖峰检验（看得见"推过去"）、阶段间比较与选择性延续分解（`phack detect --stagecol --contcol`，`phack simulate --continuation`）。
 
 ## 数据
 

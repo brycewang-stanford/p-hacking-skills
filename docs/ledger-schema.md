@@ -26,6 +26,7 @@ per specification. Columns:
 | `ms` | float | estimation time |
 | `flag_*` | bool | pathology flags (see Concepts); `n_flags` their count |
 | `reported` | bool | with a procedure: the row the procedure would write up |
+| `p_pilot`, `coef_pilot`, `n_pilot` | float | with `split_sample`: the pilot-stage estimate of the same specification. The other result columns of the reported row are the stage's own estimate (`holdout`, `pilot`) or the full-data fit (`pooled`); every other row is the full-data fit |
 | `abs_t` | float | \|t\| |
 
 A foreign runner writes the subset `key, label, coef, se, t, p, n, status,

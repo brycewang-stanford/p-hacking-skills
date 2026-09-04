@@ -28,11 +28,11 @@
       "core": "estimators: WLS/FE, event-study linear combinations, RDD (ROT/IK, conventional/bc/robust), 2SLS/LIML + AR",
       "grid": "design cards, enumeration, pre-registration, thinning, spec index",
       "search": "ledger, pathology flags, null calibration, audit, attribution, manifest",
-      "procedures": "exhaustive / first_significant / random / greedy / hill_climb walks",
+      "procedures": "exhaustive / first_significant / random / greedy / hill_climb / split_sample walks",
       "inference": "Bonferroni, Sidak, BH, Romano-Wolf, Li-Ji, min-p, SSN joint tests",
       "report": "honest Markdown report from the audit",
-      "detect": "p-curve battery",
-      "simulate": "Stefan-Schoenbrodt strategies",
+      "detect": "p-curve battery; density-jump and spike tests at the threshold; phase-shift and selective-continuation decomposition across stages",
+      "simulate": "Stefan-Schoenbrodt strategies + selective continuation (strategy 26) and its population version",
       "score": "PHI",
       "rundir": "agent working-directory scorer",
       "plot": "specification curve",
@@ -69,7 +69,7 @@
     {
       "name": "phack-taxonomy",
       "path": "skills/01-phack-taxonomy",
-      "description": "Name and classify p-hacking strategies, and quantify what each one does to the false-positive rate. Covers the twelve-strategy compendium of Stefan and Schoenbrodt (2023), thirteen econometrics-specific degrees of freedom (clustering doctrine, fixed-effect structure, RDD bandwidth, kernel and inference mode, IV instrument sets and first-stage screening, staggered-DiD estimator and comparison-group choice, synthetic-control donor pools), and the search procedures that turn a strategy into a session. Use when asked what p-hacking is, which strategy a particular analytical choice corresponds to, how much a given researcher degree of freedom inflates type I error, or to enumerate the ways a specific result could have been obtained.",
+      "description": "Name and classify p-hacking strategies, and quantify what each one does to the false-positive rate. Covers the twelve-strategy compendium of Stefan and Schoenbrodt (2023), thirteen econometrics-specific degrees of freedom (clustering doctrine, fixed-effect structure, RDD bandwidth, kernel and inference mode, IV instrument sets and first-stage screening, staggered-DiD estimator and comparison-group choice, synthetic-control donor pools), the search procedures that turn a strategy into a session, and the two between-stage strategies of Adda, Decker and Ottaviani (2020): selective continuation from a pilot to a confirmatory study, which is not p-hacking until the pilot is pooled, and selective reporting between stages. Use when asked what p-hacking is, which strategy a particular analytical choice corresponds to, how much a given researcher degree of freedom inflates type I error, or to enumerate the ways a specific result could have been obtained.",
       "side": "map"
     },
     {
@@ -99,7 +99,7 @@
     {
       "name": "phack-detection",
       "path": "skills/06-phack-detection",
-      "description": "Test whether a body of reported results shows p-hacking or selective reporting, using the p-curve battery. Implements the binomial, Fisher, Stouffer and least-concave-majorant monotonicity tests of Elliott, Kudrin and Wuethrich (2022), plus threshold-bunching tests calibrated against a smooth counterfactual density and Simonsohn's p-curve power estimate. Use when asked whether a literature, a journal, a research design, an author or a set of agent runs shows evidence of p-hacking or publication bias.",
+      "description": "Test whether a body of reported results shows p-hacking, selective reporting or selection between stages, using the p-curve battery and the threshold and across-stages tests of Adda, Decker and Ottaviani (2020). Implements the binomial, Fisher, Stouffer and least-concave-majorant monotonicity tests of Elliott, Kudrin and Wuethrich (2022); threshold-bunching tests calibrated against a smooth counterfactual density; a Cattaneo-Jansson-Ma density-jump test and a right-side spike test that tell a level shift (results withheld) from a spike (results pushed across); the phase II vs phase III comparison and the selective-continuation decomposition; and Simonsohn's p-curve power estimate. Use when asked whether a literature, a journal, a research design, an author, a registry or a set of agent runs shows evidence of p-hacking, publication bias or selective continuation.",
       "side": "blue"
     },
     {
@@ -117,7 +117,7 @@
     {
       "name": "search-procedures",
       "path": "skills/09-search-procedures",
-      "description": "Model how a specification universe is actually walked, rather than assuming it is enumerated. Implements the search procedures a p-hacker or a pressured agent uses (first-significant stopping, random trial within a budget, greedy coordinate descent from the pre-registered analysis, random hill-climbing), replays each on null data to measure its false-positive rate and the inflation of what it reports, and records the path so the write-up can be checked against it. Use when asked what a realistic p-hacking session looks like, how likely a given way of searching is to manufacture significance on a specific design, how to calibrate a result that came from a sequential rather than exhaustive search, or to simulate an agent's search behaviour on known-null data.",
+      "description": "Model how a specification universe is actually walked, rather than assuming it is enumerated. Implements the search procedures a p-hacker or a pressured agent uses (first-significant stopping, random trial within a budget, greedy coordinate descent from the pre-registered analysis, random hill-climbing, and the two-stage split-sample walk with an optional continuation rule, after Adda, Decker and Ottaviani 2020), replays each on null data to measure its false-positive rate and the inflation of what it reports, and records the path so the write-up can be checked against it. Use when asked what a realistic p-hacking session looks like, how likely a given way of searching is to manufacture significance on a specific design, how to calibrate a result that came from a sequential rather than exhaustive search, or to simulate an agent's search behaviour on known-null data.",
       "side": "red"
     },
     {

@@ -113,7 +113,7 @@ def honest_report(audit: dict, manifest: dict | None = None, card: dict | None =
         L += [f"| **null-calibrated (min-p over the identical search, {m['n_null_draws']} draws)** | **{_p(m['honest_p'])}** |"]
         if "min_p_test_unflagged" in a:
             L += [f"| null-calibrated, best unflagged | {_p(a['min_p_test_unflagged']['honest_p'])} |"]
-    if "procedure_test" in a:
+    if "honest_p" in a.get("procedure_test", {}):
         pt = a["procedure_test"]
         L += [f"| null-calibrated for the *{pt['procedure']}* procedure | {_p(pt['honest_p'])} |"]
     L += [""]
@@ -125,10 +125,15 @@ def honest_report(audit: dict, manifest: dict | None = None, card: dict | None =
               f"{_f(m['inflation_factor'], 0)}×).", ""]
     if "procedure_test" in a:
         pt = a["procedure_test"]
+        any_ = pt.get("null_share_reporting_any", 1.0)
         L += [f"The **{pt['procedure']}** procedure reports a significant result on "
-              f"**{100 * pt['null_share_reporting_significant']:.0f}%** of null datasets, visiting "
-              f"{pt['null_mean_specs_visited']:.1f} specifications on average. That is its false-positive "
-              f"rate on this design.", ""]
+              f"**{100 * pt['null_share_reporting_significant']:.0f}%** of null datasets"
+              + (f" on which it reported anything at all ({100 * any_:.0f}% of them; the rest were "
+                 f"abandoned after the pilot stage)" if any_ < 1 else "")
+              + f", visiting {pt['null_mean_specs_visited']:.1f} specifications on average. That is its "
+              f"false-positive rate on this design.", ""]
+        if "note" in pt:
+            L += [f"On the observed data the procedure reported nothing: {pt['note']}.", ""]
     ai = a.get("axis_influence", {})
     if ai.get("ranked_axes"):
         L += ["## Which choices did the work", "",
@@ -139,7 +144,7 @@ def honest_report(audit: dict, manifest: dict | None = None, card: dict | None =
             L += [f"| {ax} | {_f(r['spread'])} | {r['most_significant_level']} | {_f(r['share_of_all_significant_at_that_level'], 2)} |"]
         L += [""]
     L += ["## Conclusion", ""]
-    hp = (a.get("procedure_test") or a.get("min_p_test") or {}).get("honest_p")
+    hp = (a.get("procedure_test") or {}).get("honest_p", (a.get("min_p_test") or {}).get("honest_p"))
     if hp is not None:
         if hp >= a["alpha"]:
             L += [f"The search found nothing that survives calibration against its own multiplicity "
@@ -180,8 +185,10 @@ def summary_lines(a: dict) -> str:
         L.append(f"  ... best unflagged: {a['min_p_test_unflagged']['honest_p']:.3f}")
     if "procedure_test" in a:
         pt = a["procedure_test"]
+        any_ = pt.get("null_share_reporting_any", 1.0)
         L.append(f"  procedure FPR     : {100 * pt['null_share_reporting_significant']:.0f}% of null datasets "
-                 f"({pt['null_mean_specs_visited']:.0f} specs visited on average)")
+                 + (f"that reported ({100 * any_:.0f}% did) " if any_ < 1 else "")
+                 + f"({pt['null_mean_specs_visited']:.0f} specs visited on average)")
     ai = a.get("axis_influence", {}).get("ranked_axes", [])
     if ai:
         L.append(f"axes doing the work : {', '.join(ai[:4])}")

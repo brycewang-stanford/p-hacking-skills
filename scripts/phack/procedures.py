@@ -20,6 +20,13 @@ computes the false-positive rate of the *procedure* rather than of the grid.
     random             sample `budget` specifications, report the best
     greedy             coordinate descent from a start spec, one axis at a time
     hill_climb         random single-axis moves, accepted when they improve p
+    split_sample       two stages: search on a pilot share of the units, then report
+                       the chosen specification on the held-out share (honest),
+                       on all the data (pooled: the pilot's luck is inside the
+                       reported test) or as the pilot estimate itself. With
+                       `continue_at`, the confirmatory stage is only run after a
+                       promising pilot -- selective continuation, after Adda,
+                       Decker & Ottaviani (2020).
 """
 from __future__ import annotations
 
@@ -30,7 +37,7 @@ import numpy as np
 from . import grid, inference
 
 __all__ = ["Walk", "Procedure", "Exhaustive", "FirstSignificant", "RandomBudget",
-           "GreedyCoordinate", "HillClimb", "PROCEDURES", "make"]
+           "GreedyCoordinate", "HillClimb", "SplitSample", "PROCEDURES", "make"]
 
 
 @dataclass
@@ -39,6 +46,9 @@ class Walk:
     reported: object                    # Spec or None
     stopped: str                        # why the walk ended
     path: list = field(default_factory=list)   # per-step notes, for the ledger / narrative
+    reported_result: dict = None        # a fit that overrides the full-data fit of `reported`
+                                        # (a held-out or pilot estimate); None = the full-data fit
+    stage_results: dict = None          # key -> extra ledger columns (e.g. the pilot-stage p)
 
 
 def _objective(r, direction):
@@ -246,12 +256,116 @@ class HillClimb(Procedure):
         return Walk(visited, cur, why, path)
 
 
+def _split_mask(df, card, rng, pilot_share):
+    """Pilot / holdout split by panel unit when the card has one, else by row."""
+    unit = card.get("panel_unit") if isinstance(card, dict) else None
+    if unit and unit in df:
+        ids = np.asarray(sorted(df[unit].unique(), key=str), dtype=object)
+        perm = rng.permutation(len(ids))
+        k = max(1, min(len(ids) - 1, int(round(pilot_share * len(ids)))))
+        pilot_ids = set(ids[perm[:k]].tolist())
+        return df[unit].isin(pilot_ids).to_numpy()
+    n = len(df)
+    perm = rng.permutation(n)
+    k = max(1, min(n - 1, int(round(pilot_share * n))))
+    m = np.zeros(n, dtype=bool); m[perm[:k]] = True
+    return m
+
+
+class SplitSample(Procedure):
+    """Two stages, after the phase II / phase III structure of a drug trial.
+
+    Stage 1 walks the grid with `inner` (any procedure here) on a pilot share
+    of the units and picks a specification. If `continue_at` is set, the
+    project continues only when the pilot's chosen p is below it; otherwise
+    nothing is reported (the abandoned project) and the null replay counts
+    that draw as "did not report". Stage 2 reports the chosen specification:
+
+        stage='holdout'  estimated on the held-out units only. The search was
+                         free and the reported test is valid: this is the
+                         split-sample immunisation of 07-phack-immunization,
+                         and its false-positive rate should be alpha.
+        stage='pooled'   estimated on all units. The pilot's favourable draw
+                         is inside the reported statistic. This is what
+                         "we explored, then confirmed on the full sample" does.
+        stage='pilot'    the pilot estimate itself, reported as if confirmatory.
+
+    The ledger rows are always the full-data fits of the specifications the
+    pilot visited (so the pooled numbers are visible for every one), with
+    `p_pilot` / `coef_pilot` alongside; the reported row carries the
+    stage's own estimate.
+    """
+    name = "split_sample"
+
+    def __init__(self, inner="exhaustive", pilot_share=0.5, stage="pooled", continue_at=None,
+                 start="first", report="best", budget=None, stop_at_alpha=None, order="card",
+                 max_rounds=None, patience=None):
+        if stage not in ("holdout", "pooled", "pilot"):
+            raise KeyError(f"stage must be 'holdout', 'pooled' or 'pilot', not {stage!r}")
+        if inner == "split_sample":
+            raise ValueError("split_sample cannot nest itself")
+        self.inner, self.pilot_share, self.stage = inner, float(pilot_share), stage
+        self.continue_at = None if continue_at is None else float(continue_at)
+        self.start, self.report, self.budget = start, report, budget
+        self.stop_at_alpha, self.order, self.max_rounds, self.patience = stop_at_alpha, order, max_rounds, patience
+
+    def params(self):
+        return {"inner": self.inner, "pilot_share": self.pilot_share, "stage": self.stage,
+                "continue_at": self.continue_at, "start": self.start, "report": self.report,
+                "budget": self.budget, "stop_at_alpha": self.stop_at_alpha, "order": self.order,
+                "max_rounds": self.max_rounds, "patience": self.patience}
+
+    def _inner(self):
+        return make(self.inner, start=self.start, report=self.report, budget=self.budget,
+                    stop_at_alpha=self.stop_at_alpha, order=self.order,
+                    max_rounds=self.max_rounds, patience=self.patience)
+
+    def walk(self, specs, fit, rng, alpha=0.05, direction=None):
+        from . import search                      # local import: search imports this module
+        df, card = getattr(fit, "df", None), getattr(fit, "card", None)
+        if df is None or card is None:
+            raise ValueError("split_sample needs a fitter made by search.make_fitter (it carries df and card)")
+        pilot = _split_mask(df, card, rng, self.pilot_share)
+        fit_pilot = search.make_fitter(df[pilot].reset_index(drop=True), card)
+        inner = self._inner()
+        w = inner.walk(specs, fit_pilot, rng, alpha=alpha, direction=direction)
+        stage_results = {}
+        for s in w.visited:
+            r = fit_pilot(s)
+            stage_results[s.key()] = {"p_pilot": r.get("p", np.nan), "coef_pilot": r.get("coef", np.nan),
+                                      "n_pilot": r.get("n", 0)}
+        note = {"stage": "pilot", "inner": inner.name, "inner_stopped": w.stopped,
+                "n_pilot_rows": int(pilot.sum()), "n_holdout_rows": int((~pilot).sum()),
+                "pilot_share": self.pilot_share}
+        if w.reported is None:
+            return Walk(w.visited, None, "pilot search reported nothing", [note], None, stage_results)
+        p_pilot = _objective(fit_pilot(w.reported), direction)
+        note["pilot_p"] = float(p_pilot)
+        if self.continue_at is not None and not (p_pilot < self.continue_at):
+            note["continued"] = False
+            return Walk(w.visited, None,
+                        f"pilot p = {p_pilot:.3g} not below continue_at = {self.continue_at}; project abandoned",
+                        [note], None, stage_results)
+        note["continued"] = True
+        if self.stage == "holdout":
+            fit_hold = search.make_fitter(df[~pilot].reset_index(drop=True), card)
+            override = dict(fit_hold(w.reported))
+        elif self.stage == "pilot":
+            override = dict(fit_pilot(w.reported))
+        else:
+            override = None
+        note["reported_stage"] = self.stage
+        why = f"{self.stage} estimate of the pilot's choice after {len(w.visited)} pilot specs"
+        return Walk(w.visited, w.reported, why, [note], override, stage_results)
+
+
 PROCEDURES = {
     "exhaustive": Exhaustive,
     "first_significant": FirstSignificant,
     "random": RandomBudget,
     "greedy": GreedyCoordinate,
     "hill_climb": HillClimb,
+    "split_sample": SplitSample,
 }
 
 

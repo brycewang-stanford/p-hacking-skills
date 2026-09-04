@@ -35,6 +35,23 @@ Contents that matter, in order of how often they are omitted:
 it. Explore freely in the training half; the held-out half gets exactly one
 analysis, the one that exploration selected. This converts a search into a
 legitimate two-stage design and is by far the strongest available protection.
+It is also measurable: `--procedure split_sample --stage holdout` runs it,
+and the null replay prices it (`09-search-procedures`). On the null panel an
+exhaustive search over 400 specifications reports p < .05 on 86% of null
+datasets when the pilot estimate is reported, 45% when the pilot is pooled
+into the confirmatory sample, and 10% on the held-out units alone; a greedy
+walk from the pre-analysis plan with a continuation rule at pilot p < .10
+reports on the held-out units at 4.8%. Two conditions, both from Adda,
+Decker & Ottaviani (2020): the confirmatory sample must be **fresh** — pooling
+the pilot in keeps half the inflation, and "we explored on half and confirmed
+on everything" is optional stopping — and the held-out estimate must be run
+with a **fixed inference doctrine**, because a pilot that picks the smallest p
+picks anti-conservative standard errors, and fresh data does not cure a
+standard error that under-states uncertainty everywhere (on this panel the
+held-out estimate of a pilot-chosen `hc1` specification rejects 19% of the
+time; a unit-clustered one, 5.6%). Selective *continuation* — running the
+confirmatory stage only after a promising pilot — is fine on its own: it
+changes which projects a registry sees, not the size of their tests.
 
 **Blind the analysis.** Analyse with the treatment label permuted, fix every
 analytical choice, then unblind. Everything decided under blinding is

@@ -1,10 +1,15 @@
 # A taxonomy of p-hacking strategies
 
-Two layers. The **base layer** is the twelve-strategy compendium of Stefan &
-Schönbrodt (2023), which is the most complete catalogue in the literature and
-the only one with matched simulations. The **econometrics layer** adds the
-degrees of freedom that appear in design-based causal work and that the base
-layer, written for experimental psychology, does not cover.
+Two layers of strategies, then two more. The **base layer** is the
+twelve-strategy compendium of Stefan & Schönbrodt (2023), which is the most
+complete catalogue in the literature and the only one with matched
+simulations. The **econometrics layer** adds the degrees of freedom that
+appear in design-based causal work and that the base layer, written for
+experimental psychology, does not cover. The **procedure layer** says in what
+order the knobs are turned and when the search stops. The **stages layer**,
+after Adda, Decker & Ottaviani (2020), covers what happens *between* a pilot
+and a confirmatory analysis — which is where a registry of results shows
+selection without any p-hacking at all.
 
 Each strategy is described by what the researcher *chooses*, what makes the
 choice defensible, and what the choice does to the type I error rate.
@@ -257,6 +262,52 @@ The procedures are implemented in `scripts/phack/procedures.py` and replayed
 on null data by `search.null_calibration`; `09-search-procedures` explains
 how to read the result.
 
+## Layer 4 — between stages: continuation and concealment
+
+Research runs in stages: a pilot and a confirmatory study; an exploratory
+regression and the one in the paper; phase II and phase III. Adda, Decker &
+Ottaviani (2020) show on 12,621 registered clinical-trial results that the
+share significant rises from 46% to 71% between phases for industry sponsors
+with **no** discontinuity at z = 1.96 in the earlier stage, because sponsors
+continue only after promising early results. Two strategies live here, and
+only one of them is p-hacking.
+
+### 26. Selective continuation
+Run the pilot; continue to the confirmatory stage only if the pilot is
+promising. With a **fresh** confirmatory sample the confirmatory test keeps
+its size — the false-positive rate stays at α among the projects that
+continue — and the population of confirmatory results is nonetheless shifted
+toward significance, because true effects are heterogeneous and the rule
+selects on them. That is selection, not manipulation, and it is invisible to
+every threshold test. It becomes p-hacking the moment the pilot is **pooled**
+into the confirmatory test (the favourable pilot draw is inside the reported
+statistic: optional stopping with one lenient look), or the **better** of the
+stages is reported.
+
+| `26_selective_continuation --report` | false-positive rate | pilots run per continued project |
+|---|---|---|
+| `main` (confirmatory sample alone) | **0.050** | 9.9 |
+| `pooled` (pilot folded into the confirmatory test) | 0.170 | 9.9 |
+| `best` (the better of pilot, confirmatory, pooled) | 0.581 | 9.9 |
+
+4,000 simulations, pilot n = 50 per arm, confirmatory n = 100 per arm,
+continuation at pilot p < 0.10, true effect zero, conditional on continuation.
+`simulate.continuation_shift` is the population version with heterogeneous
+effects; the engine walks the same structure on a real design as the
+`split_sample` procedure (`09-search-procedures`), whose `holdout` stage is
+the split-sample immunisation of `07-phack-immunization` and whose `pooled`
+stage is its failure mode.
+
+### 27. Selective reporting between stages
+Run the confirmatory stage and register it only when it is significant. In
+the paper this is what is left after continuation is accounted for: about 18
+points of excess significance for small industry sponsors, with a
+discontinuity of the phase III density at 1.96 that is a **level shift, not
+a spike** — the results below the line are missing, not moved. Distinct from
+strategy 12 (rounding) and from the base-layer strategies, all of which leave
+a spike. `detect.density_jump_test` sees it; `detect.spike_test` tells it
+from p-hacking; `detect.continuation_decomposition` quantifies it.
+
 ## How to use this taxonomy
 
 - **To build a design card** (`02-forking-paths`): each strategy that plausibly
@@ -271,6 +322,10 @@ how to read the result.
 Stefan, A. M. & Schönbrodt, F. D. (2023). Big little lies: a compendium and
 simulation of p-hacking strategies. *Royal Society Open Science* 10:220346.
 Reference implementation: `astefan1/phacking_compendium`.
+
+Adda, J., Decker, C. & Ottaviani, M. (2020). P-hacking in clinical trials and
+how incentives shape the distribution of results across phases. *PNAS*
+117(24):13386–13392.
 
 Simmons, Nelson & Simonsohn (2011); Gelman & Loken (2013); Brodeur, Cook &
 Heyes (2020); Cameron, Gelbach & Miller (2011) on two-way clustering. Full list

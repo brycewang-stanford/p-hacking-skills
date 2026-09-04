@@ -78,6 +78,7 @@ def make_fitter(df, card):
             cache[k] = r
         return cache[k]
     fit.cache = cache
+    fit.df, fit.card = df, card               # so two-stage procedures can re-fit on a subset
     return fit
 
 
@@ -155,6 +156,18 @@ def run(df: pd.DataFrame, card: dict, *, specs=None, progress=False,
             rows.append(rec)
             if progress and len(rows) % 250 == 0:
                 print(f"  {len(rows)}/{len(visited)} specs  ({time.time()-t0:.1f}s)", flush=True)
+    if procedure is not None:
+        if walk.stage_results:
+            for rec in rows:
+                rec.update(walk.stage_results.get(rec["key"], {}))
+        if walk.reported_result is not None and reported_key is not None:
+            # a two-stage procedure reports its own (held-out or pilot) estimate,
+            # not the full-data fit of the same specification
+            for rec in rows:
+                if rec["key"] == reported_key:
+                    rec.update({k: v for k, v in walk.reported_result.items()
+                                if not isinstance(v, np.ndarray)})
+                    break
     led = pd.DataFrame(rows)
     if led.empty:
         return led
@@ -165,7 +178,8 @@ def run(df: pd.DataFrame, card: dict, *, specs=None, progress=False,
         led["reported"] = led["key"] == reported_key
         led.attrs["walk"] = {"procedure": procedure.name, "params": procedure.params(),
                              "n_visited": int(len(visited)), "stopped": walk.stopped,
-                             "reported_key": reported_key, "n_in_grid": int(len(specs))}
+                             "reported_key": reported_key, "n_in_grid": int(len(specs)),
+                             "path": walk.path}
     return led
 
 
@@ -302,6 +316,8 @@ class NullDraws:
         np.save(os.path.join(out_dir, "p_null.npy"), self.p)
         if self.reported_p_null is not None:
             np.save(os.path.join(out_dir, "reported_p_null.npy"), self.reported_p_null)
+        if self.n_visited_null is not None:
+            np.save(os.path.join(out_dir, "n_visited_null.npy"), self.n_visited_null)
         meta = {"scheme": self.scheme, "seed": self.seed, "B": self.B,
                 "direction": self.direction, "procedure": self.procedure,
                 "spec_keys": [s.key() for s in self.specs]}
@@ -312,6 +328,7 @@ class NullDraws:
     def load(cls, out_dir, specs=None):
         meta = json.load(open(os.path.join(out_dir, "null_meta.json")))
         rp = os.path.join(out_dir, "reported_p_null.npy")
+        nv = os.path.join(out_dir, "n_visited_null.npy")
         nd = cls(min_p=np.load(os.path.join(out_dir, "min_p_null.npy")),
                  t=np.load(os.path.join(out_dir, "t_null.npy")),
                  coef=np.load(os.path.join(out_dir, "coef_null.npy")),
@@ -319,7 +336,8 @@ class NullDraws:
                  specs=specs if specs is not None else meta["spec_keys"],
                  scheme=meta["scheme"], seed=meta["seed"], direction=meta.get("direction"),
                  procedure=meta.get("procedure"),
-                 reported_p_null=np.load(rp) if os.path.exists(rp) else None)
+                 reported_p_null=np.load(rp) if os.path.exists(rp) else None,
+                 n_visited_null=np.load(nv) if os.path.exists(nv) else None)
         nd.min_p_dir = _min_p_dir(nd.t, nd.p, nd.direction)
         return nd
 
@@ -350,7 +368,7 @@ def _null_worker(args):
                           alpha=alpha, direction=direction)
             n_vis[i] = len(w.visited)
             if w.reported is not None:
-                r = fit(w.reported)
+                r = w.reported_result if w.reported_result is not None else fit(w.reported)
                 rep_p[i] = inference.one_sided_p(r["t"], r["p"], direction) if direction else r["p"]
     return out_t, out_c, out_p, rep_p, n_vis
 
@@ -519,18 +537,29 @@ def audit(ledger: pd.DataFrame, min_p_null=None, t_null=None, *, null: NullDraws
         out["ssn_joint"] = inference.ssn_joint_tests(
             ok["coef"].to_numpy()[:m], ok["t"].to_numpy()[:m], ok["p"].to_numpy()[:m],
             null.coef[:, :m], null.t[:, :m], null.p[:, :m], alpha=alpha, direction=direction)
-    if null is not None and null.reported_p_null is not None and "reported_spec" in out:
-        rep = out["reported_spec"]
-        p_rep = rep.get("p_dir", rep["p"]) if direction else rep["p"]
-        out["procedure_test"] = {
-            "procedure": null.procedure,
-            **inference.min_p_test(float(p_rep), null.reported_p_null),
-            "null_share_reporting_significant": float(np.nanmean(null.reported_p_null < alpha)),
-            "null_mean_specs_visited": float(np.nanmean(null.n_visited_null)),
+    if null is not None and null.reported_p_null is not None:
+        rp = np.asarray(null.reported_p_null, float); fin = np.isfinite(rp)
+        pt = {"procedure": null.procedure}
+        if "reported_spec" in out:
+            rep = out["reported_spec"]
+            p_rep = rep.get("p_dir", rep["p"]) if direction else rep["p"]
+            pt.update(inference.min_p_test(float(p_rep), null.reported_p_null))
+        else:
+            pt["note"] = "the procedure reported nothing on the observed data (project abandoned)"
+        pt.update({
+            # among the null draws on which the procedure reported anything: a
+            # two-stage procedure with a continuation rule reports nothing on
+            # the draws it abandoned, and a registry of results never sees those
+            "null_share_reporting_significant": float(np.mean(rp[fin] < alpha)) if fin.any() else float("nan"),
+            "null_share_reporting_any": float(fin.mean()),
+            "null_mean_specs_visited": (float(np.nanmean(null.n_visited_null))
+                                        if null.n_visited_null is not None else float("nan")),
             "observed_specs_visited": int(out["walk"]["n_visited"]) if "walk" in out else None,
             "reads": ("null_share_reporting_significant is the false-positive rate of this "
-                      "procedure on this design; honest_p is what its reported p is worth"),
-        }
+                      "procedure on this design, among the null draws on which it reported anything "
+                      "(null_share_reporting_any); honest_p is what its reported p is worth"),
+        })
+        out["procedure_test"] = pt
     return out
 
 

@@ -132,7 +132,9 @@ def verify(run_dir, data_path=None, recompute=True) -> dict:
                 else:
                     by = {s.key(): s for s in grid.enumerate_specs(card)}
                     nd.specs = [by[k] for k in nd.specs if k in by]
-            led_a = led[led["key"].isin(keys)] if keys else led
+            # a procedure run is audited on everything it visited (as `phack search`
+            # does), an exhaustive run on the specifications the null draws cover
+            led_a = led[led["key"].isin(keys)] if (keys and "walk" not in aud) else led
             pre = (aud.get("preregistered") or {}).get("key")
             re_aud = search.audit(led_a, null=nd, preregistered_key=pre, alpha=aud["alpha"], direction=direction)
             diffs = []

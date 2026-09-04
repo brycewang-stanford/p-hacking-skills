@@ -33,3 +33,25 @@ def test_workflow_is_cumulative_with_diminishing_returns():
     c = w["cumulative_fpr"]
     assert all(np.diff(c) >= 0)
     assert c[-1] > 0.3
+
+
+def test_selective_continuation_is_not_p_hacking_until_the_pilot_is_pooled():
+    main = sim.false_positive_rate("26_selective_continuation", n_sims=1500, seed=3, report="main")
+    pooled = sim.false_positive_rate("26_selective_continuation", n_sims=1500, seed=3, report="pooled")
+    best = sim.false_positive_rate("26_selective_continuation", n_sims=1500, seed=3, report="best")
+    assert 0.03 <= main["fpr_hacked"] <= 0.075            # a fresh confirmatory sample keeps its size
+    assert pooled["fpr_hacked"] > 0.12                    # the pilot's luck inside the reported test
+    assert best["fpr_hacked"] > pooled["fpr_hacked"]      # selective reporting across stages
+    assert main["mean_attempts"] > 5                      # ~1/go pilots run per continued project
+    with pytest.raises(KeyError):
+        sim.run_strategy("26_selective_continuation", np.random.default_rng(0), report="pilot")
+
+
+def test_continuation_shift_moves_the_share_significant_between_phases():
+    pop = sim.continuation_shift(n_projects=3000, seed=1)
+    assert pop["share_significant_main_all"] > pop["share_significant_pilot"] + 0.05
+    assert pop["z_main_reported"].size == pop["n_reported"] == pop["n_continued"]
+    hid = sim.continuation_shift(n_projects=3000, seed=1, conceal=0.5)
+    assert hid["n_reported"] < hid["n_continued"]
+    assert hid["share_significant_main_reported"] > pop["share_significant_main_reported"]
+    assert np.array_equal(hid["z_pilot"], pop["z_pilot"])   # same projects, different reporting

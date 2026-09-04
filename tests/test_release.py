@@ -93,3 +93,20 @@ def test_summary_lines_are_short():
 def test_console_script_installed_or_shim_works():
     r = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "phack_cli.py"), "schema"], capture_output=True, text=True)
     assert r.returncode == 0 and '"title": "phack design card"' in r.stdout
+
+
+def test_verify_accepts_procedure_runs(tmp_path):
+    """Regression: verify's recompute used to fail on any procedure run (the null replay's
+    visit counts were never saved), and filtered the walk's ledger down to the null's specs."""
+    for name, extra in (("greedy", ["--procedure", "greedy", "--stop-at-alpha"]),
+                        ("split", ["--procedure", "split_sample", "--inner", "random", "--budget", "8",
+                                   "--stage", "holdout", "--continue-at", "0.9"])):
+        out = tmp_path / name
+        cli.main(["search", os.path.join(DATA, "null_iv.csv"), os.path.join(DATA, "null_iv_card.json"),
+                  "--out", str(out), "--null-draws", "6", "--null-max-specs", "20", "--no-plot",
+                  "--summary", "--direction", "+"] + extra)
+        assert (out / "walk.json").exists() and (out / "n_visited_null.npy").exists()
+        res = verify.verify(str(out), data_path=os.path.join(DATA, "null_iv.csv"))
+        assert res["ok"], [c for c in res["checks"] if not c["ok"]]
+        aud = json.load(open(out / "audit.json"))
+        assert "procedure_test" in aud and aud["procedure_test"]["null_share_reporting_any"] <= 1

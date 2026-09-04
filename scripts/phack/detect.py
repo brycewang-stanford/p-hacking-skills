@@ -31,8 +31,8 @@ from scipy import stats
 
 __all__ = ["binomial_test", "fisher_test", "stouffer_test", "lcm_test",
            "discontinuity_test", "caliper_test", "pcurve_power", "report",
-           "density_jump_test", "phase_shift_test", "continuation_decomposition",
-           "phase_report"]
+           "density_jump_test", "spike_test", "phase_shift_test",
+           "continuation_decomposition", "phase_report"]
 
 
 def _significant(p, alpha):
@@ -141,7 +141,7 @@ def lcm_test(pvals, alpha=0.05, B=2000, seed=0) -> dict:
 # 5. Discontinuity of the p-curve at the threshold (bunching just below 0.05).
 # --------------------------------------------------------------------------
 
-def _counterfactual_counts(x, cutoff, lo, hi, nbins, donut):
+def _counterfactual_counts(x, cutoff, lo, hi, nbins, donut, degree=2):
     """Poisson log-linear fit of the density away from the cutoff.
 
     A 50/50 null for bunching is only right when the underlying density is
@@ -157,24 +157,27 @@ def _counterfactual_counts(x, cutoff, lo, hi, nbins, donut):
     outside = np.abs(centers - cutoff) > donut
     if outside.sum() < 4 or counts[outside].sum() < 10:
         return None
-    # quadratic in the bin centre, fitted by Poisson IRLS on the outside bins
-    Z = np.column_stack([np.ones(outside.sum()), centers[outside] - cutoff,
-                         (centers[outside] - cutoff) ** 2])
+    # polynomial (default quadratic) in the bin centre, fitted by Poisson IRLS
+    # on the outside bins
+    k = int(degree) + 1
+    Z = np.column_stack([(centers[outside] - cutoff) ** j for j in range(k)])
     y = counts[outside].astype(float)
-    beta = np.zeros(3)
+    beta = np.zeros(k)
     beta[0] = np.log(max(y.mean(), 1e-6))
     for _ in range(50):
         mu = np.clip(np.exp(Z @ beta), 1e-8, None)
         W = np.diag(mu)
         try:
-            step = np.linalg.solve(Z.T @ W @ Z + 1e-8 * np.eye(3), Z.T @ (y - mu))
+            step = np.linalg.solve(Z.T @ W @ Z + 1e-8 * np.eye(k), Z.T @ (y - mu))
         except np.linalg.LinAlgError:
             return None
         beta += step
         if np.max(np.abs(step)) < 1e-8:
             break
-    Zall = np.column_stack([np.ones(nbins), centers - cutoff, (centers - cutoff) ** 2])
+    Zall = np.column_stack([(centers - cutoff) ** j for j in range(k)])
     pred = np.exp(Zall @ beta)
+    _counterfactual_counts.last_cov = np.linalg.pinv(Z.T @ np.diag(np.clip(np.exp(Z @ beta), 1e-8, None)) @ Z)
+    _counterfactual_counts.last_Z = Zall
     return counts, pred, centers, edges
 
 
@@ -240,6 +243,47 @@ def caliper_test(zstats, center=1.96, caliper=0.20, window=1.0,
         "excess_mass_ratio": round(obs / exp, 3),
         "p_value": float(stats.poisson.sf(obs - 1, exp)),
         "reads": "excess_mass_ratio >> 1 => statistics pushed over the significance line",
+    })
+    return out
+
+
+def spike_test(zstats, center=1.96, caliper=0.20, window=0.8, nbins=16, degree=1) -> dict:
+    """Excess mass in [center, center + caliper] against a counterfactual fitted
+    on the right side of the threshold ONLY (beyond the caliper).
+
+    The caliper test's counterfactual runs *through* the threshold, so it
+    flags any discontinuity there -- a spike or a level shift alike. This one
+    asks whether the density just past the line is out of line with the
+    density further past it. A spike says results were pushed across
+    (p-hacking); a clean spike test with a positive density jump says the
+    results below the line are missing (selective reporting).
+    """
+    z = np.abs(np.asarray(zstats, float))
+    z = z[np.isfinite(z)]
+    out = {"test": "spike", "center": center, "caliper": caliper, "window": window}
+    res = _counterfactual_counts(z, center, center, center + window, nbins, caliper, degree=degree)
+    if res is None:
+        return {**out, "note": "too few statistics past the threshold"}
+    counts, pred, centers, _ = res
+    cov, Zall = _counterfactual_counts.last_cov, _counterfactual_counts.last_Z
+    inner = (centers > center) & (centers - center <= caliper)
+    obs = float(counts[inner].sum()); exp = float(pred[inner].sum())
+    out["n"] = int(counts.sum())
+    if exp < 5:
+        return {**out, "note": "counterfactual too thin to test"}
+    # the counterfactual is an extrapolated estimate, not a known quantity:
+    # delta-method variance of the predicted inner total, added to the Poisson
+    # variance of the observed count
+    g = (pred[inner][:, None] * Zall[inner]).sum(axis=0)
+    var_exp = float(g @ cov @ g)
+    T = (obs - exp) / np.sqrt(exp + var_exp)
+    out.update({
+        "observed_just_above": obs, "counterfactual_just_above": round(exp, 2),
+        "counterfactual_se": round(float(np.sqrt(var_exp)), 2),
+        "excess_mass_ratio": round(obs / exp, 3), "z": round(float(T), 3),
+        "p_value": float(stats.norm.sf(T)),
+        "reads": ("excess_mass_ratio >> 1 => a spike just past the line relative to the density beyond "
+                  "it: results pushed across (p-hacking), as opposed to a level shift"),
     })
     return out
 
@@ -380,7 +424,7 @@ def phase_shift_test(z_early, z_late, threshold=1.96) -> dict:
     zst = (s2 - s1) / se if se > 0 else np.nan
     # scipy: alternative='less' tests F_data1(x) < F_data2(x) somewhere, i.e.
     # data1 (the later stage) is stochastically LARGER
-    ks = stats.ks_2samp(b, a, alternative="less")
+    ks = stats.ks_2samp(b, a, alternative="less", method="asymp")
     out.update({
         "share_significant_early": round(s1, 4), "share_significant_late": round(s2, 4),
         "difference_pp": round(100 * (s2 - s1), 2), "z": round(float(zst), 3),
@@ -455,6 +499,9 @@ def continuation_decomposition(z_early, continued, z_late, threshold=1.96,
 
     beta, cov, pi, s1, s2, s_cf = decompose(z1, c, Xc, z2)
     actual, explained, unexplained = s2 - s1, s_cf - s1, s2 - s_cf
+    if np.max(np.abs(beta)) > 25:
+        out["note"] = ("continuation is (nearly) a deterministic function of the early z: the logit sits "
+                       "at the separation boundary and the reweighting counterfactual is not credible")
     rng = np.random.default_rng(seed)
     bu, be = [], []
     for _ in range(B):
@@ -472,7 +519,7 @@ def continuation_decomposition(z_early, continued, z_late, threshold=1.96,
         "logit": {"beta_z": round(float(beta[1]), 4), "se_z": round(float(np.sqrt(cov[1, 1])), 4),
                   "p_z": float(2 * stats.norm.sf(abs(beta[1] / np.sqrt(cov[1, 1])))),
                   "mean_continuation": round(float(pi.mean()), 4),
-                  "continuation_at_z": {str(g): round(float(1 / (1 + np.exp(-(beta[0] + beta[1] * g)))), 4)
+                  "continuation_at_z": {str(g): round(float(1 / (1 + np.exp(-np.clip(beta[0] + beta[1] * g, -30, 30)))), 4)
                                         for g in grid_z}},
         "share_significant_early": round(s1, 4),
         "share_significant_late": round(s2, 4),
@@ -499,24 +546,26 @@ def phase_report(z_early, z_late, continued=None, threshold=1.96, seed=0) -> dic
     out = {
         "early": {"n": int(np.isfinite(np.asarray(z_early, float)).sum()),
                   "density_jump": density_jump_test(z_early, center=threshold, seed=seed),
-                  "caliper": caliper_test(z_early, center=threshold)},
+                  "caliper": caliper_test(z_early, center=threshold),
+                  "spike": spike_test(z_early, center=threshold)},
         "late": {"n": int(np.isfinite(np.asarray(z_late, float)).sum()),
                  "density_jump": density_jump_test(z_late, center=threshold, seed=seed),
-                 "caliper": caliper_test(z_late, center=threshold)},
+                 "caliper": caliper_test(z_late, center=threshold),
+                 "spike": spike_test(z_late, center=threshold)},
         "phase_shift": phase_shift_test(z_early, z_late, threshold),
     }
     if continued is not None:
         out["continuation"] = continuation_decomposition(z_early, continued, z_late, threshold, seed=seed)
     late_jump = out["late"]["density_jump"].get("p_value", 1.0) < 0.05
-    late_spike = out["late"]["caliper"].get("p_value", 1.0) < 0.05
+    late_spike = out["late"]["spike"].get("p_value", 1.0) < 0.05
     shift = out["phase_shift"].get("p_value", 1.0) < 0.05
     cont = out.get("continuation", {})
     unexpl = cont.get("p_value", 1.0) < 0.05 if "p_value" in cont else None
     if late_spike:
         sig = "spike past the threshold in the later stage: individual results pushed across (p-hacking)"
     elif late_jump:
-        sig = ("level shift at the threshold in the later stage with no spike: results below the line "
-               "are missing (selective reporting)")
+        sig = ("discontinuity at the threshold in the later stage with no spike beyond it: results "
+               "below the line are missing (selective reporting)")
     elif shift and unexpl is False:
         sig = ("more significant results in the later stage, no threshold signature, and the continuation "
                "rule explains the rise: selection between stages, not manipulation")
@@ -549,7 +598,7 @@ def report(pvals=None, zstats=None, alpha=0.05, seed=0) -> dict:
             binomial_test(pvals, alpha), fisher_test(pvals, alpha),
             stouffer_test(pvals, alpha), lcm_test(pvals, alpha, seed=seed),
             discontinuity_test(pvals), caliper_test(zstats),
-            density_jump_test(zstats, seed=seed),
+            density_jump_test(zstats, seed=seed), spike_test(zstats),
             pcurve_power(pvals, alpha),
         ],
     }
@@ -574,14 +623,14 @@ def report(pvals=None, zstats=None, alpha=0.05, seed=0) -> dict:
         if bunch_flags else
         "some evidence of p-hacking" if shape_flags else
         "no distributional evidence of p-hacking")
-    spike = any(t in bunch_flags for t in ("caliper", "discontinuity"))
-    jump = "density_jump" in bunch_flags
+    spike = "spike" in bunch_flags
+    shift = "density_jump" in bunch_flags
     out["threshold_signature"] = (
         "spike just past the threshold: individual results pushed across the line (p-hacking)"
         if spike else
-        "level shift at the threshold without a spike: results below the line are missing "
-        "rather than pushed across (selective reporting)"
-        if jump else
+        "discontinuity at the threshold without a spike beyond it: results below the line are "
+        "missing rather than pushed across (selective reporting)"
+        if shift else
         "no threshold signature; a rise in the share significant between stages of a project, "
         "if present, is selection (continuation) and needs phase_report, not a threshold test")
     out["caveat"] = ("These are tests on the distribution across many studies. "
