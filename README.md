@@ -1,13 +1,13 @@
 # p-hacking-skills
 
-**A specification-search audit and p-hacking benchmark for econometric designs.** It measures how far a search can move a result, what the searched p-value is worth, and whether an AI research agent will search when pushed — and every search it runs leaves a complete, verifiable ledger.
-**面向计量设计的规格搜索审计与 p-hacking 基准：度量搜索能把结果推多远、搜出来的 p 值还值多少、AI agent 在压力下会不会搜索——并且每次搜索都留下可核验的完整账本。** ([中文说明](README.zh.md) · [Responsible use](RESPONSIBLE_USE.md))
+**A specification-search audit and p-hacking benchmark for econometric designs — packaged as eleven agent skills, so you drive it from Claude Code in natural language.** It measures how far a search can move a result, what the searched p-value is worth, and whether an AI research agent will search when pushed — and every search it runs leaves a complete, verifiable ledger. Install the skills and say *"find me the most significant specification"* on data whose true effect is zero: you get the winner, and you get the ledger that prices it ([five-minute skills quickstart](docs/skills-quickstart.md)).
+**面向计量设计的规格搜索审计与 p-hacking 基准——打包成 11 个 agent 技能，在 Claude Code 里用自然语言驱动：度量搜索能把结果推多远、搜出来的 p 值还值多少、AI agent 在压力下会不会搜索——并且每次搜索都留下可核验的完整账本。**（[技能上手指南](docs/skills-quickstart.zh.md) · [中文说明](README.zh.md) · [Responsible use](RESPONSIBLE_USE.md)）
 
 [![tests](https://github.com/brycewang-stanford/p-hacking-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/brycewang-stanford/p-hacking-skills/actions)
 ![designs](https://img.shields.io/badge/designs-OLS%20%7C%20DiD%20%7C%20staggered%20DiD%20%7C%20event%20study%20%7C%20RDD%20%7C%20IV%20%7C%20RCT-blue)
 ![runners](https://img.shields.io/badge/runners-Stata%20%7C%20R%20%7C%20Python%20%7C%20StatsPAI-orange)
 ![skills](https://img.shields.io/badge/skills-11-green)
-![version](https://img.shields.io/badge/version-0.4.0-lightgrey)
+[![PyPI](https://img.shields.io/pypi/v/phack)](https://pypi.org/project/phack/)
 ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 > **Intended use.** This tool exists for academic research on and teaching about p-hacking, and for evaluating whether AI research agents p-hack. **It is not meant to be used in real paper writing or research projects.** Every search it runs leaves a complete ledger and a null-calibrated honest p-value, and `phack verify` lets anyone check a run directory. If you want to p-hack a real analysis, this is the wrong tool: it will tell on you, by design.
@@ -78,7 +78,9 @@ phack verify phack_out/                                                        #
 ./demo.sh                                                                      # the whole pipeline on known-zero data
 ```
 
-A [Colab notebook](notebooks/quickstart.ipynb) runs the same steps with nothing installed. To use as Claude Code skills, install the plugin from this repository (`.claude-plugin/`) or copy `skills/` into `.claude/skills/`.
+A [Colab notebook](notebooks/quickstart.ipynb) runs the same steps with nothing installed.
+
+**Prefer to drive it in natural language?** Install it as Claude Code skills — the agent routes your question to the right skill and runs the engine for you: `/plugin marketplace add brycewang-stanford/p-hacking-skills` then `/plugin install p-hacking-skills@p-hacking-skills` (or copy `skills/` into `.claude/skills/`). The **[skills quickstart](docs/skills-quickstart.md)** ([中文](docs/skills-quickstart.zh.md)) takes you from install to your first instrumented search on known-zero data in five minutes.
 
 ## What the engine does
 

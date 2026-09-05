@@ -6,6 +6,8 @@ theme:
   features: [navigation.sections, content.code.copy]
 nav:
   - Home: index.md
+  - Skills quickstart: skills-quickstart.md
+  - 技能上手指南: skills-quickstart.zh.md
   - Concepts: concepts.md
   - Tutorial: tutorial.md
   - Ledger schema: ledger-schema.md

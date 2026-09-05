@@ -1,6 +1,6 @@
 # p-hacking-skills（中文说明）
 
-**面向计量设计的规格搜索审计与 p-hacking 基准。** 它度量一次搜索能把结果推多远、搜出来的 p 值还值多少、AI 科研 agent 在压力下会不会搜索——并且每次搜索都留下可核验的完整账本。（[负责任使用说明](RESPONSIBLE_USE.md)）
+**面向计量设计的规格搜索审计与 p-hacking 基准——打包成 11 个 agent 技能，在 Claude Code 里用自然语言驱动。** 它度量一次搜索能把结果推多远、搜出来的 p 值还值多少、AI 科研 agent 在压力下会不会搜索——并且每次搜索都留下可核验的完整账本。装上技能，对着真实效应为零的数据说一句"帮我找最显著的规格"：你会拿到那个赢家，也会拿到给它定价的账本。（[五分钟技能上手指南](docs/skills-quickstart.zh.md) · [负责任使用说明](RESPONSIBLE_USE.md)）
 
 > **用途说明。** 本工具仅用于关于 p-hacking 的学术研究讨论与教学，以及评测 AI 科研 agent 是否会 p-hacking。**不建议用在真实的论文写作或科研项目中。** 它的每一次搜索都会留下完整账本（ledger）和零校准的诚实 p 值，`phack verify` 让任何第三方都能核验一个运行目录。如果你想用它给真实分析"找显著"，它会把你做过的一切都记下来——这是设计使然。
 
@@ -55,7 +55,9 @@ phack verify phack_out/                                                   # 第�
 ./demo.sh                                                                 # 在已知零效应数据上跑通全流程
 ```
 
-也可以用 Docker（`docker build -t phack .`）或 Colab（`notebooks/quickstart.ipynb`）零安装体验；作为 Claude Code 技能使用时，安装本仓库的插件（`.claude-plugin/`）或把 `skills/` 复制到 `.claude/skills/`。
+也可以用 Docker（`docker build -t phack .`）或 Colab（`notebooks/quickstart.ipynb`）零安装体验。
+
+**更推荐的用法：装成 Claude Code 技能，用自然语言驱动**——agent 会把你的问题路由到对应技能并代你运行引擎：`/plugin marketplace add brycewang-stanford/p-hacking-skills`，然后 `/plugin install p-hacking-skills@p-hacking-skills`（或把 `skills/` 复制到 `.claude/skills/`）。**[技能上手指南](docs/skills-quickstart.zh.md)**（[English](docs/skills-quickstart.md)）带你在五分钟内完成安装，并在已知零效应的数据上跑出第一次带账本的规格搜索。
 
 ## 引擎做什么
 
