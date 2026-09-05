@@ -44,6 +44,16 @@ phack search panel.dta panel_card.json --out run_greedy/ --procedure greedy \
 `procedure_test.null_share_reporting_significant` is the false-positive
 rate of greedy coordinate descent on your design.
 
+Then put a stopwatch on it — how many seconds and fits a search of each
+shape needs to manufacture p < .05 on your design, with the yield being
+each procedure's false-positive rate (measured examples for all four
+shipped designs: [capability.md](capability.md)):
+
+```bash
+phack race panel.dta panel_card.json --direction + --trials 40 --budget 60 \
+    --null-scheme cluster_permute --summary
+```
+
 Two stages, the way a drug trial or a pilot-then-paper project runs:
 
 ```bash
