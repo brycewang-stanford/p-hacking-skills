@@ -45,9 +45,13 @@ The audit answers with axis attribution — how much of the significance came fr
 
 > **"Search the way a real researcher would: greedy coordinate descent from the pre-registered spec, stop at p < 0.05. Then tell me the false-positive rate of that procedure itself on null data."**
 
-That is the `search-procedures` skill — the same walk replayed on dozens of null draws, giving the FPR that belongs to *this way of searching* and the procedure-honest p.
+That is the `search-procedures` skill — the same walk replayed on dozens of null draws, giving the FPR that belongs to *this way of searching* and the procedure-honest p. Finally, put a stopwatch on it:
 
-Prefer one command? `./demo.sh` runs the whole nine-step pipeline (RDD, staggered DiD, detection, agent scoring, cross-language parity included).
+> **"How fast could you manufacture a false positive on this design? Race the procedures and give me the price list."**
+
+That is `phack race`: every procedure runs against the clock on fresh null draws, so the yield **is** its false-positive rate and the median seconds-to-significance is what "an agent can p-hack in minutes" measures out to — on this panel it is seconds, not minutes, and the honest analysis is faster still ([the measured numbers](capability.md)).
+
+Prefer one command? `./demo.sh` runs the whole ten-step pipeline (the race, RDD, staggered DiD, detection, agent scoring, cross-language parity included).
 
 ## 3. On your own data (teaching / methods research)
 
@@ -98,6 +102,7 @@ Remember the contract: **the skills will not report only the winner.** Asking to
 | How many degrees of freedom / how big is my garden | `forking-paths` |
 | Find the most significant specification (with the ledger) | `specification-search` |
 | What is a human search procedure worth in false positives | `search-procedures` |
+| How many seconds to manufacture significance (`phack race`) | `search-procedures` |
 | Same grid in Stata / R / Python / StatsPAI | `phack-polyglot` |
 | Which framings flip an agent from refusal to compliance | `framing-attacks` |
 | How a searched result gets written up as a "finding" | `narrative-laundering` |

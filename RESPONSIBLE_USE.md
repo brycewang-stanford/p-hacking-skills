@@ -21,6 +21,20 @@ tool follows Stefan & Schönbrodt's `phackR`, Simonsohn's p-curve and
 specification-curve tools, and Asher et al.'s agent evaluation in taking
 that view.
 
+## Why it publishes a stopwatch
+
+`phack race` reports how many seconds and how many model fits a realistic
+search procedure needs to manufacture p < α on data whose true effect is
+zero, and how often it succeeds. That number is this repository's threat
+model stated quantitatively: the manufacture of a false positive now costs
+one sentence to a coding agent and about a second of compute, while the
+complete audit — ledger, null replay, honest p — costs under a minute.
+Publishing the stopwatch does not lower the cost of the attack; a loop has
+been cheap for decades and the race adds no search the engine did not
+already instrument. What it removes is the last excuse for not auditing:
+when the audit is priced in seconds, "too expensive to check" is no longer
+a defensible review policy.
+
 ## What makes it safe to build
 
 Every safeguard is mechanical, not advisory:

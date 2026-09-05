@@ -1,6 +1,38 @@
 # Changelog
 
-## Unreleased — between stages (after Adda, Decker & Ottaviani 2020, PNAS)
+## 0.5.0 — the speed, measured (`phack race`)
+
+The repository's capability claim — one sentence to a coding agent, data
+whose true effect is zero, a "significant" result seconds later — is now a
+measured quantity rather than a slogan.
+
+- **`phack race`** (module `race.py`): time-to-significance benchmark. Each
+  search procedure runs against the clock; with `--null-scheme`, every
+  trial re-draws the data under the null first, so the yield **is** the
+  procedure's false-positive rate and every timing prices one manufactured
+  false positive. Reports per procedure: yield, median / q90 seconds to
+  significance, fits and specifications to significance, median reported p
+  — beside the honest baseline (the pre-registered specification's cost
+  and p). `--summary` prints a table; `--out` writes per-trial JSON; the
+  output's `note` states that a raced `reported_p` is a search maximum,
+  not a p-value. Deterministic given the seed.
+- **Measured capability page** (`docs/capability.md`, 中文
+  `docs/capability.zh.md`): the four designs raced with fixed seeds.
+  Headlines: greedy coordinate descent manufactures p < .05 on 48% of
+  null panel draws (median 1.1 s), 67% on the staggered panel (0.16 s),
+  97% on the RDD (0.89 s), 33% on the IV (0.04 s); the honest baseline
+  costs 2–5 ms everywhere; the fully instrumented exhaustive search with
+  200-draw null calibration costs ~50 s on six workers.
+- README (EN/zh) repositioned to lead with the priced capability;
+  quickstarts gain the stopwatch prompt; skill `09-search-procedures` and
+  the router document `race`; `demo.sh` gains step 4 (now ten steps);
+  `RESPONSIBLE_USE.md` explains why publishing the stopwatch is the
+  responsible move. Thinned grids are documented as hostile to
+  neighbourhood walks (greedy / hill_climb race the full grid).
+- No dataset, card, prompt, weight or protocol changed: the benchmark
+  version is unchanged.
+
+### Also in 0.5.0 — between stages (after Adda, Decker & Ottaviani 2020, PNAS)
 
 The paper: 12,621 registered clinical-trial results show no spike at
 z = 1.96, a level shift at 1.96 in phase III for small sponsors only, and a

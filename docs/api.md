@@ -1,7 +1,7 @@
 # Python API
 
 ```python
-from phack import grid, search, procedures, report, polyglot, verify, bench, init_card, io
+from phack import grid, search, procedures, race, report, polyglot, verify, bench, init_card, io
 ```
 
 | function | does |
@@ -18,6 +18,7 @@ from phack import grid, search, procedures, report, polyglot, verify, bench, ini
 | `search.audit(ledger, null=, preregistered_key=, direction=)` | the audit dict |
 | `search.nearest_significant`, `search.axis_influence`, `search.manifest` | diagnostics, manifest |
 | `procedures.make(name, **params)` | `exhaustive`, `first_significant`, `random`, `greedy`, `hill_climb`, `split_sample` (two stages: `inner`, `pilot_share`, `stage=holdout|pooled|pilot`, `continue_at`) |
+| `race.race(df, card, procedure_names=, trials=, budget=, null_scheme=)` / `race.summary_lines(res)` | time-to-significance benchmark: yield (= FPR under a null scheme), seconds / fits / specs to p < α, honest baseline |
 | `report.honest_report(audit, manifest, card)` / `report.summary_lines(audit)` | Markdown / terminal |
 | `theatre.build_table`, `theatre.audit_table` | robustness theatre |
 | `polyglot.export(df, card, specs, dir, lang=, null_B=)` / `polyglot.ingest(dir)` / `polyglot.parity(dir)` | other languages |

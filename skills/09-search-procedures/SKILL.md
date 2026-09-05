@@ -77,6 +77,34 @@ the pre-registered specification reports p < .05 on **55%** of null datasets
 after visiting 28 specifications on average. `honest_p` is what its reported
 p-value is worth.
 
+## The stopwatch: `phack race`
+
+"How fast could this design be hacked?" is a question with a measured
+answer, and it is the number a referee's or evaluator's threat model needs.
+`phack race` runs each procedure against the clock; with `--null-scheme`
+every trial first re-draws the data under the null, so the yield **is** the
+procedure's false-positive rate and every timing prices one manufactured
+false positive:
+
+```bash
+python scripts/phack_cli.py race DATA CARD --direction + \
+    --trials 40 --budget 60 --null-scheme cluster_permute --summary
+```
+
+On the shipped null panel (25,920 specifications, one-sided, budget 60,
+40 null draws): greedy manufactures p < .05 on 48% of null draws with a
+median 1.1 s to significance; first-significant in random order on 52% in
+0.02 s; the pre-registered baseline fits in 0.002 s and says p = 0.62. On
+the null RDD the greedy yield is 97%. Full tables for all four designs, with
+seeds: `docs/capability.md`.
+
+Race on the **full grid**: thinning (`--max-specs`) removes most single-axis
+neighbours, so greedy and hill_climb end at their start on a thinned grid.
+A race prices the search; it does not audit one. Its `reported_p` values are
+search maxima, not p-values — the audit of a specific walk is
+`phack search --procedure ... --null-draws 200`, and the race output says so
+in its `note` field.
+
 ## Two stages: where selection stops being p-hacking
 
 Adda, Decker & Ottaviani (2020) found on ClinicalTrials.gov that phase III

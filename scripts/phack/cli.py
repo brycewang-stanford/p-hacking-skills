@@ -6,6 +6,10 @@ Command-line entry point for the p-hacking skills toolkit (`phack`).
     phack size      CARD                     how big is the garden?
     phack search    DATA CARD [--out DIR]    walk it (exhaustively or with a procedure),
                                              log everything, calibrate, write the honest report
+    phack race      DATA CARD                time-to-significance: how many seconds each search
+                                             procedure needs to manufacture p < alpha (with
+                                             --null-scheme: on fresh null draws, so the yield is
+                                             the procedure's false-positive rate)
     phack audit     LEDGER [--null-dir D]    honest inference on an existing ledger
     phack report    RUN_DIR                  regenerate the Markdown report from a run directory
     phack detect    STATS                    p-curve battery on many studies
@@ -37,7 +41,7 @@ from scipy import stats
 import pandas as pd
 
 from . import (grid, search, detect, simulate, score, inference, plot, rundir, procedures, report,
-               theatre, polyglot, io as _io, init_card, verify as _verify, bench)
+               theatre, polyglot, io as _io, init_card, verify as _verify, bench, race as _race)
 
 
 def _j(obj):
@@ -135,6 +139,25 @@ def cmd_search(a):
         print(report.summary_lines(rep))
     else:
         _j(rep)
+
+
+def cmd_race(a):
+    df = _io.read_table(a.data)
+    card = grid.load_card(a.card)
+    if a.direction:
+        card["direction"] = a.direction
+    res = _race.race(df, card, procedure_names=[p.strip() for p in a.procedures.split(",") if p.strip()],
+                     trials=a.trials, alpha=a.alpha, seed=a.seed, max_specs=a.max_specs,
+                     budget=a.budget, order=a.order, null_scheme=a.null_scheme, progress=a.progress)
+    res["data"], res["card"] = a.data, a.card
+    if a.out:
+        with open(a.out, "w") as fh:
+            json.dump(res, fh, indent=2, default=str)
+        res["written"] = a.out
+    if a.summary:
+        print(_race.summary_lines(res))
+    else:
+        _j(res)
 
 
 def cmd_init(a):
@@ -370,6 +393,32 @@ def main(argv=None):
     s.add_argument("--no-plot", action="store_true", dest="no_plot")
     s.add_argument("--summary", action="store_true", help="print a short text summary instead of the JSON audit")
     s.set_defaults(f=cmd_search)
+
+    s = sub.add_parser("race", help="time-to-significance: seconds each search procedure needs to manufacture p < alpha")
+    s.add_argument("data"); s.add_argument("card")
+    s.add_argument("--procedures", default=",".join(_race.DEFAULT_PROCEDURES),
+                   help="comma-separated procedure names to race (no split_sample; race its inner walk instead)")
+    s.add_argument("--trials", type=int, default=20)
+    s.add_argument("--alpha", type=float, default=0.05)
+    s.add_argument("--direction", default=None, choices=["+", "-"],
+                   help="one-sided direction the search is after (overrides the card)")
+    s.add_argument("--max-specs", type=int, default=None, dest="max_specs",
+                   help="thin the grid before racing (pre-registered spec kept). Thinning removes "
+                        "most single-axis neighbours, so greedy / hill_climb end early on a thinned "
+                        "grid; race the full grid unless you only race order-based procedures")
+    s.add_argument("--budget", type=int, default=None, help="max specifications a procedure may visit")
+    s.add_argument("--order", default="random", choices=["card", "random"],
+                   help="first_significant: visit order (default random, so trials vary)")
+    s.add_argument("--null-scheme", default=None, dest="null_scheme",
+                   choices=["permute", "permute_within_unit", "permute_within_time",
+                            "cluster_permute", "gaussian"],
+                   help="re-draw the data under the null before every trial: the yield becomes "
+                        "the procedure's false-positive rate and every timing prices a false positive")
+    s.add_argument("--seed", type=int, default=0)
+    s.add_argument("--out", default=None, help="also write the full JSON here")
+    s.add_argument("--progress", action="store_true")
+    s.add_argument("--summary", action="store_true", help="print a short text table instead of the JSON")
+    s.set_defaults(f=cmd_race)
 
     s = sub.add_parser("init", help="draft a design card from a dataset")
     s.add_argument("data"); s.add_argument("--out", default=None); s.add_argument("--name", default=None)

@@ -1,6 +1,6 @@
 # p-hacking-skills（中文说明）
 
-**面向计量设计的规格搜索审计与 p-hacking 基准——打包成 11 个 agent 技能，在 Claude Code 里用自然语言驱动。** 它度量一次搜索能把结果推多远、搜出来的 p 值还值多少、AI 科研 agent 在压力下会不会搜索——并且每次搜索都留下可核验的完整账本。装上技能，对着真实效应为零的数据说一句"帮我找最显著的规格"：你会拿到那个赢家，也会拿到给它定价的账本。（[五分钟技能上手指南](docs/skills-quickstart.zh.md) · [负责任使用说明](RESPONSIBLE_USE.md)）
+**对 Claude Code 说一句"帮我找最显著的规格"，大约一秒钟的计算——这就是今天 p-hacking 的成本，而本仓库就是把它量出来的仪器。** 在构造上真实效应恰好为零的数据上，这里实现的现实搜索过程能在 48–97% 的零抽取中制造出 p < .05，每个假阳性的中位耗时 0.01–1.1 秒（[实测数字](docs/capability.zh.md)）。它被打包成 11 个 agent 技能，驱动一台仪表化的规格搜索引擎：装上技能，对着已知零效应的数据说出那句话，你会拿到那个赢家——连同给它定价的完整账本，因为这里的任何搜索都不可能不留账本地运行。（[五分钟技能上手指南](docs/skills-quickstart.zh.md) · [负责任使用说明](RESPONSIBLE_USE.md)）
 
 > **用途说明。** 本工具仅用于关于 p-hacking 的学术研究讨论与教学，以及评测 AI 科研 agent 是否会 p-hacking。**不建议用在真实的论文写作或科研项目中。** 它的每一次搜索都会留下完整账本（ledger）和零校准的诚实 p 值，`phack verify` 让任何第三方都能核验一个运行目录。如果你想用它给真实分析"找显著"，它会把你做过的一切都记下来——这是设计使然。
 
@@ -9,6 +9,19 @@
 Asher 等（2026）发现：前沿编程 agent 会拒绝"请给我显著结果"的直接要求，却会接受措辞改成"探索不同设计给出估计的上界"的同一要求，并写出按显著性排序的嵌套循环。要度量这个缺口，就得能在有记录的条件下执行这种行为，而且要在真正有油水的设计上：有估计量菜单的 DiD、有带宽菜单的 RDD、有工具变量菜单的 IV，并且用研究者真正在用的语言。
 
 **唯一的规则：任何搜索都必须留下完整账本，任何报告出来的 p 值都必须附带它的诚实对应值。** 规格搜索本身不是不端，把搜索赢家当成单一预注册检验来报告才是。
+
+## 速度，实测
+
+`phack race` 给每种现实搜索过程上秒表，并在每次试验前把数据重新抽成零效应——所以产出率**就是**该过程的假阳性率，每个耗时都是一个假阳性被制造出来的实测成本。从预注册规格出发的贪心坐标下降，预算 60，单侧：
+
+| 设计（真值 = 0） | 花园 | 零抽取上的产出率 | 到 p < .05 的中位秒数 | 诚实的分析 |
+|---|---|---|---|---|
+| DiD 面板 | 25,920 个规格 | 48% | 1.1 | 0.002 秒，p = 0.62 |
+| 交错 DiD | 3,456 | 67% | 0.16 | 0.002 秒，p = 0.22 |
+| RDD | 20,736 | **97%** | 0.89 | 0.005 秒，p = 0.25 |
+| IV | 672 | 33% | 0.04 | 0.003 秒，p = 0.62 |
+
+"agent 几分钟就能 p-hack"其实说保守了：搜索只要几秒，那几分钟从来都只是写循环的时间——而写循环正是 agent 把它变成一句话的部分。完整的仪表化运行（穷举、200 次零校准、各项校正、归因、报告）在六个进程上约 50 秒，所以审计和攻击一样只需要一句话。四个设计逐过程的完整表格、命令与种子：[docs/capability.zh.md](docs/capability.zh.md)。
 
 ## 为什么要公开一个能搜索显著性的工具
 
@@ -49,6 +62,7 @@ phack init panel.dta --design did --treatment policy --outcome lnwage   # 从数
 phack size panel_card.json                                               # 规格空间有多大、预注册规格是哪一个
 phack search panel.dta panel_card.json --direction + --null-draws 200 --n-jobs 6 --summary
 phack search panel.dta panel_card.json --procedure greedy --stop-at-alpha --direction + --null-draws 200
+phack race panel.dta panel_card.json --direction + --budget 60 --null-scheme cluster_permute --summary   # 制造显著要几秒；产出率即 FPR
 phack export panel.dta panel_card.json --lang stata --out run_stata/     # 同一网格交给 Stata / R / Python / StatsPAI
 phack ingest run_stata/ --parity                                          # 接回审计并与引擎逐行比对
 phack verify phack_out/                                                   # 第三方核验
@@ -62,7 +76,7 @@ phack verify phack_out/                                                   # 第�
 ## 引擎做什么
 
 1. **枚举网格。** 设计卡片（JSON，有正式 schema）每个键是一个研究者自由度；`preregistered` 块指定诚实分析者会事先承诺的那一个规格。支持 OLS / RCT、DiD（TWFE、Gardner 两阶段、stacked、对照组选择）、事件研究（窗口、参照期、估计目标）、RDD（ROT / IK 带宽 × 倍数、核、多项式、甜甜圈、常规 / 偏差修正 / CCT robust 推断）、IV（工具子集、2SLS / LIML、每行记录一阶段 F 与 Anderson–Rubin p）。
-2. **走网格。** 穷举，或者像 p-hacker 一样按顺序走并设停止规则（`first_significant`、`random`、`greedy` 坐标下降、`hill_climb`）；零校准会**重放同一过程**，给出"这种搜索方式在这个设计上"的假阳性率。`split_sample` 走两阶段：先在试点样本上搜，再把选中的规格在留出样本（`--stage holdout`，诚实）、全样本（`--stage pooled`，试点的运气进了报告的检验）或试点样本上报告；`--continue-at` 只在试点有希望时才进入确证阶段——这就是 Adda, Decker & Ottaviani (2020) 在临床试验注册库里看到的"选择性延续"。
+2. **走网格。** 穷举，或者像 p-hacker 一样按顺序走并设停止规则（`first_significant`、`random`、`greedy` 坐标下降、`hill_climb`）；零校准会**重放同一过程**，给出"这种搜索方式在这个设计上"的假阳性率；`phack race` 再给它上秒表，量出制造一个假阳性要几秒。`split_sample` 走两阶段：先在试点样本上搜，再把选中的规格在留出样本（`--stage holdout`，诚实）、全样本（`--stage pooled`，试点的运气进了报告的检验）或试点样本上报告；`--continue-at` 只在试点有希望时才进入确证阶段——这就是 Adda, Decker & Ottaviani (2020) 在临床试验注册库里看到的"选择性延续"。
 3. **算出搜索值多少。** 对最优规格：Bonferroni、Li–Ji 有效检验数、Romano–Wolf、零校准诚实 p；对整条曲线：Simonsohn 联合检验；再加上**与预注册规格的距离**（差几个选择就能显著）和**轴归因**（哪个旋钮在做功）。病理标记把"可引用但错误"的角落留在账本里并标出来。
 4. **写报告，可核验。** `report.md` 从审计生成，数字不可能与账本漂移；`manifest.json` 记录数据、卡片、账本、审计的哈希；`phack verify` 逐项核对。`phack bench` 冻结与检查基准版本；`bench.seal` 对保留集做哈希承诺而不公开内容。
 5. **在你的语言里跑。** `phack export` 导出语言无关的规格表、数据和零假设置换列，并生成 Stata（reghdfe / ivreghdfe / rdrobust / did2s）、R（fixest / rdrobust / did2s）、Python（statsmodels / linearmodels）或 StatsPAI 的执行脚本；`phack ingest --parity` 接回并与引擎逐行比对，一致性表见 `references/language-map.md`。 把 [stata-code](https://github.com/brycewang-stanford/stata-code) 注册为 MCP server（`claude mcp add stata-code --scope user -- uvx --from "stata-code[mcp]" stata-code-mcp`）之后，agent 可以在 Claude Code 里直接运行导出的 `run_specs.do` 并读回账本；Python 这一侧由 StatsPAI 承担同样的角色，并与 Stata 的估计交叉核对。

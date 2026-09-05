@@ -1,6 +1,6 @@
 {
   "name": "p-hacking-skills",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "n_skills": 11,
   "purpose": "Specification-search audit and p-hacking benchmark for econometric designs; an evaluation instrument for AI research agents. Research and teaching use only.",
   "toolkit": {
@@ -10,6 +10,7 @@
       "init",
       "size",
       "search",
+      "race",
       "audit",
       "report",
       "theatre",
@@ -29,6 +30,7 @@
       "grid": "design cards, enumeration, pre-registration, thinning, spec index",
       "search": "ledger, pathology flags, null calibration, audit, attribution, manifest",
       "procedures": "exhaustive / first_significant / random / greedy / hill_climb / split_sample walks",
+      "race": "time-to-significance benchmark: how many seconds / fits / specifications each search procedure needs to manufacture p < alpha; with a null scheme, the yield is the procedure's false-positive rate",
       "inference": "Bonferroni, Sidak, BH, Romano-Wolf, Li-Ji, min-p, SSN joint tests",
       "report": "honest Markdown report from the audit",
       "detect": "p-curve battery; density-jump and spike tests at the threshold; phase-shift and selective-continuation decomposition across stages",

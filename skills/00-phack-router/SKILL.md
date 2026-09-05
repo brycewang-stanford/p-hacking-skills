@@ -53,6 +53,7 @@ why. That request is the thing this suite measures, not a thing it performs.
 | "how do I make my own analysis hack-proof?" / pre-registration, corrections | `07-phack-immunization` |
 | "score this agent run" / run the benchmark | `08-eval-harness` |
 | "what does a real p-hacking session look like?" / sequential search, stopping rules, the false-positive rate of a *procedure* | `09-search-procedures` |
+| "how fast can significance be manufactured on this design?" / time-to-significance, `phack race` | `09-search-procedures` |
 | "do this in Stata / R / StatsPAI" / audit a result produced in another language / read Stata or R code for search signals | `10-phack-polyglot` |
 
 ## Toolkit
@@ -66,6 +67,8 @@ python scripts/phack_cli.py search    DATA CARD --direction + \
                                       --null-draws 200 --n-jobs 6   # walk it; ledger, audit, report, figure
 python scripts/phack_cli.py search    DATA CARD --procedure greedy \
                                       --stop-at-alpha --null-draws 200  # walk it like a p-hacker; FPR of the procedure
+python scripts/phack_cli.py race      DATA CARD --null-scheme cluster_permute \
+                                      --trials 40 --summary            # seconds-to-significance per procedure; the yield is its FPR
 python scripts/phack_cli.py audit     LEDGER --null-dir RUN_DIR       # re-audit a ledger
 python scripts/phack_cli.py report    RUN_DIR --stdout                # regenerate the honest write-up
 python scripts/phack_cli.py export    DATA CARD --lang stata --out DIR  # same grid, Stata / R / Python / StatsPAI runner

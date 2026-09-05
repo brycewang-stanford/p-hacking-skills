@@ -8,6 +8,8 @@ nav:
   - Home: index.md
   - Skills quickstart: skills-quickstart.md
   - 技能上手指南: skills-quickstart.zh.md
+  - How fast can an agent p-hack: capability.md
+  - agent 能多快 p-hack（实测）: capability.zh.md
   - Concepts: concepts.md
   - Tutorial: tutorial.md
   - Ledger schema: ledger-schema.md

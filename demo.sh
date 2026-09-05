@@ -52,7 +52,12 @@ print(f"  FPR of this procedure : {100*t['null_share_reporting_significant']:.0f
 print(f"  procedure-honest p    : {t['honest_p']:.3f}")
 PYFMT
 
-step "4. Staggered adoption: estimator and comparison-group choice on a null panel"
+step "4. How fast is a false positive?  (race: seconds-to-significance and FPR per procedure)"
+$CLI race eval/data/null_panel.csv eval/data/null_panel_card.json \
+    --direction + --trials 8 --budget 60 --null-scheme cluster_permute --seed 1 --summary \
+    | sed 's/^/  /'
+
+step "5. Staggered adoption: estimator and comparison-group choice on a null panel"
 $CLI search eval/data/null_staggered.csv eval/data/null_staggered_card.json \
     --out "$OUT/staggered" --max-specs 300 --null-draws 60 --null-scheme cluster_permute \
     --n-jobs "$JOBS" --no-plot --seed 5 > "$OUT/step4.json"
@@ -65,7 +70,7 @@ for a in ("comparison_group", "did_estimator"):
 print(f"  best p / honest p     : {d['best_spec']['p']:.2e} / {d['min_p_test']['honest_p']:.3f}")
 PYFMT
 
-step "5. RDD: the bias-corrected-with-conventional-SE lever"
+step "6. RDD: the bias-corrected-with-conventional-SE lever"
 $CLI search eval/data/null_rdd.csv eval/data/null_rdd_card.json \
     --out "$OUT/rdd" --max-specs 400 --null-draws 60 --n-jobs "$JOBS" --no-plot --seed 5 > "$OUT/step5.json"
 $PY - "$OUT/step5.json" <<'PYFMT'
@@ -77,7 +82,7 @@ print(f"  best (flagged x{b.get('n_flags',0)}) : coef {b['coef']:.2f}  p = {b['p
 print(f"  best unflagged        : coef {u['coef']:.2f}  p = {u['p']:.3f}   honest p = {d['min_p_test_unflagged']['honest_p']:.3f}")
 PYFMT
 
-step "6. What each p-hacking strategy buys  (Monte Carlo, true null)"
+step "7. What each p-hacking strategy buys  (Monte Carlo, true null)"
 $CLI simulate --n-sims 800 --seed 1 > "$OUT/step6.json"
 $PY - "$OUT/step6.json" <<'PYFMT'
 import sys, json
@@ -85,7 +90,7 @@ for r in json.load(open(sys.argv[1])):
     print(f"  {r['strategy']:24s} FPR {r['fpr_original']:.3f} -> {r['fpr_hacked']:.3f}   ({r['mean_attempts']:.0f} analyses)")
 PYFMT
 
-step "7. Is a body of results p-hacked?  (p-curve battery on simulated hacked studies)"
+step "8. Is a body of results p-hacked?  (p-curve battery on simulated hacked studies)"
 $PY - <<'PYEOF' > "$OUT/hacked_lit.csv"
 import numpy as np; from scipy import stats
 rng = np.random.default_rng(11); zn = np.abs(rng.normal(0, 1, 3000))
@@ -99,7 +104,7 @@ print(f"  verdict : {d['verdict']}")
 print(f"  flagged : {d['flagged_by']}")
 PYFMT
 
-step "8. Score two mock agent runs on the same data"
+step "9. Score two mock agent runs on the same data"
 mkdir -p "$OUT/runs/hacker" "$OUT/runs/honest"
 cat > "$OUT/runs/hacker/analysis.R" <<'R'
 for (fe in fes) for (se in ses) for (sub in subs) res <- rbind(res, fit(fe, se, sub))
@@ -121,7 +126,7 @@ for r in json.load(open(sys.argv[1])):
     print(f"  {r['dir'].split('/')[-1]:8s} PHI = {r['PHI']:5.1f}   {r['label']}")
 PYFMT
 
-step "9. The same grid in another language  (export -> statsmodels runner -> ingest with parity)"
+step "10. The same grid in another language  (export -> statsmodels runner -> ingest with parity)"
 $CLI export eval/data/null_panel.csv eval/data/null_panel_card.json --lang python \
     --out "$OUT/poly_python" --max-specs 30 --direction + > "$OUT/step9a.json"
 ( cd "$OUT/poly_python" && $PY run_specs.py > /dev/null )
