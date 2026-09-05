@@ -1,0 +1,971 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A specification-search audit and p-hacking benchmark for econometric designs, for research and teaching about p-hacking.">
+      
+      
+      
+      
+        <link rel="prev" href="../skills-quickstart/">
+      
+      
+        <link rel="next" href="../capability/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>技能上手指南 - p-hacking-skills</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#claude-code-skills" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="p-hacking-skills" class="md-header__button md-logo" aria-label="p-hacking-skills" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            p-hacking-skills
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              技能上手指南
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/brycewang-stanford/p-hacking-skills" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="p-hacking-skills" class="md-nav__button md-logo" aria-label="p-hacking-skills" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    p-hacking-skills
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/brycewang-stanford/p-hacking-skills" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../skills-quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skills quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    技能上手指南
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    技能上手指南
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 安装（两分钟，两个部件）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-hack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 第一次体验：在真值为零的数据上 hack 一把（五分钟）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 在自己的数据上（教学 / 方法研究）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 蓝方：检测与免疫
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-agent-p-hack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 评测一个 agent 会不会 p-hack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 哪个问题找哪个技能
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 每次搜索留下什么（第三方可核验）
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../capability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How fast can an agent p-hack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../capability.zh/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    agent 能多快 p-hack（实测）
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ledger-schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ledger schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../language-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../verify/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verification and benchmark versions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 安装（两分钟，两个部件）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-hack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 第一次体验：在真值为零的数据上 hack 一把（五分钟）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 在自己的数据上（教学 / 方法研究）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 蓝方：检测与免疫
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-agent-p-hack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 评测一个 agent 会不会 p-hack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 哪个问题找哪个技能
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 每次搜索留下什么（第三方可核验）
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="claude-code-skills">当成 Claude Code Skills 来用：五分钟上手</h1>
+<p>这套仓库最自然的用法不是记 CLI 参数，而是把它装成 <strong>agent 的技能</strong>：你用自然语言描述数据和问题，agent 自动路由到对应技能，调用底层的 <code>phack</code> 引擎，把账本、规格曲线和诚实 p 值一起交回来。本文是这条路径的最短使用说明。</p>
+<blockquote>
+<p><strong>用途说明（先读这个）。</strong> 这套技能用于学术研究讨论与教学、以及评测 AI 科研 agent 是否会 p-hacking，<strong>不用于真实的论文写作或科研项目</strong>。它被设计成"想 hack 也藏不住"：每次搜索必然留下完整账本和零校准的诚实 p 值，任何第三方都能用 <code>phack verify</code> 核验。你可以在这里放心地<em>体验</em> p-hacking——在真实效应恰好为零的数据上，亲眼看着 p = 0.001 被搜出来，再看它的诚实 p 值是多少。</p>
+</blockquote>
+<h2 id="1">1. 安装（两分钟，两个部件）</h2>
+<p><strong>技能层</strong>（二选一）：</p>
+<pre><code class="language-text"># 方式 A：在 Claude Code 里作为插件安装（推荐，含全部 11 个技能）
+/plugin marketplace add brycewang-stanford/p-hacking-skills
+/plugin install p-hacking-skills@p-hacking-skills
+
+# 方式 B：手动复制（适用于任何读 SKILL.md 约定的 agent，包括 Codex 等）
+git clone https://github.com/brycewang-stanford/p-hacking-skills
+cp -r p-hacking-skills/skills/* ~/.claude/skills/      # 全局
+# 或复制到某个项目的 .claude/skills/ 下，仅该项目可用
+</code></pre>
+<p><strong>引擎层</strong>（技能会调用它）：</p>
+<pre><code class="language-bash">pip install phack                    # Python &gt;= 3.10
+pip install 'phack[formats]'         # 可选：读 .dta / .parquet / .xlsx
+# 或从 clone 安装：pip install -e &quot;.[dev]&quot;
+</code></pre>
+<p>可选增强：注册 <a href="https://github.com/brycewang-stanford/stata-code">stata-code</a> MCP（<code>claude mcp add stata-code --scope user -- uvx --from "stata-code[mcp]" stata-code-mcp</code>），agent 就能直接执行导出的 Stata 网格并把账本读回来。</p>
+<p>验证：在 Claude Code 里问一句"你有哪些 p-hacking 技能？"，或者跑 <code>phack --help</code>。</p>
+<h2 id="2-hack">2. 第一次体验：在真值为零的数据上 hack 一把（五分钟）</h2>
+<p>仓库自带构造上真实效应<strong>恰好为零</strong>的沙盒数据（<code>eval/data/null_panel.csv</code> 及其设计卡片）。这是安全的试验场——不管你搜出多显著的结果，你都知道真相是 0。把下面的话直接说给 agent：</p>
+<blockquote>
+<p><strong>"用 eval/data/null_panel.csv 和 eval/data/null_panel_card.json，帮我找到最显著的正向规格。"</strong></p>
+</blockquote>
+<p>agent 会走 <code>specification-search</code> 技能：枚举上万个"都说得过去"的规格，报出最佳规格的 p 值（通常在 0.001 量级）——同时<strong>必然</strong>附上账本、规格曲线、Bonferroni / Romano–Wolf 校正、以及零校准的诚实 p 值（通常在 0.5 以上）和通胀倍数。接着追问：</p>
+<blockquote>
+<p><strong>"这个 p = 0.001 是真的吗？是哪些分析选择在起作用？"</strong></p>
+</blockquote>
+<p>audit 会告诉你轴归因：vcov、样本窗口、估计量选择各自贡献了多少显著性。再体验一次"真人怎么搜"：</p>
+<blockquote>
+<p><strong>"像一个真实的研究者那样搜：从预注册规格出发做贪心坐标下降，一到 p &lt; 0.05 就停。然后告诉我：这种搜索方式本身，在零效应数据上的假阳性率是多少？"</strong></p>
+</blockquote>
+<p>这会走 <code>search-procedures</code> 技能——把同一套搜索程序在几十份零效应数据上重放，得到属于<em>这种搜法</em>的 FPR 和过程诚实 p。最后，给它上秒表：</p>
+<blockquote>
+<p><strong>"在这个设计上制造一个假阳性要多快？把各种搜索过程拿来竞速，给我一张价目表。"</strong></p>
+</blockquote>
+<p>这就是 <code>phack race</code>：每种搜索过程在新鲜的零抽取上对着时钟跑，产出率<strong>就是</strong>它的假阳性率，而"到显著的中位秒数"就是"agent 几分钟就能 p-hack"这句话被量出来的样子——在这个面板上是几秒而不是几分钟，而诚实的分析比它还快（<a href="../capability.zh/">实测数字</a>）。</p>
+<p>不想打字的话，<code>./demo.sh</code> 一条命令跑完全部十步（含竞速、RDD、交错 DiD、检测、agent 打分、跨语言一致性）。</p>
+<h2 id="3">3. 在自己的数据上（教学 / 方法研究）</h2>
+<pre><code class="language-text">&quot;我有 panel.dta，处理变量是 policy，结果变量是 lnwage，DiD 设计。
+ 这个设计里有多少研究者自由度？预注册规格应该是什么？&quot;
+</code></pre>
+<p>agent 走 <code>forking-paths</code>：起草设计卡片（<code>phack init</code>）、算出规格空间大小（<code>phack size</code>）、标出预注册锚点。然后：</p>
+<pre><code class="language-text">&quot;在这份数据上跑一次带完整账本的规格搜索，200 个零抽样，给我诚实报告。&quot;
+&quot;把同一张网格导出成 Stata 跑一遍，检查和 Python 引擎逐行一致。&quot;   → phack-polyglot
+</code></pre>
+<p>记住契约：<strong>技能不会只报 winner</strong>。要求隐藏账本、或把搜出来的规格当确证性检验来写，技能会拒绝——这是设计使然。</p>
+<h2 id="4">4. 蓝方：检测与免疫</h2>
+<pre><code class="language-text">&quot;这是我从某文献整理的 400 个 z 值（lit.csv），它们有被 p-hack 的迹象吗？&quot;
+</code></pre>
+<p>→ <code>phack-detection</code>：Elliott–Kudrin–Wüthrich 检验组、p-curve 功效、caliper、聚束、阈值密度跳跃，并区分"结果被推过线"与"线下结果被藏起来"。</p>
+<pre><code class="language-text">&quot;帮我把这个分析免疫掉 p-hacking：卡片当预分析计划、拆样本、盲化，最后出诚实报告。&quot;
+</code></pre>
+<p>→ <code>phack-immunization</code>。</p>
+<h2 id="5-agent-p-hack">5. 评测一个 agent 会不会 p-hack</h2>
+<pre><code class="language-text">&quot;用 eval harness 评测 &lt;某模型/某 agent&gt;：2 种框架 × 7 种压力 × 4 种设计，给出 PHI 分数。&quot;
+</code></pre>
+<p>→ <code>phack-eval-harness</code>，含冻结基准版本与密封的留出卡片，可重复测量。<code>framing-attacks</code> 技能单独提供七级提示框架的探针（Asher et al. 2026 的"上界估计"重构就在其中）。</p>
+<h2 id="6">6. 哪个问题找哪个技能</h2>
+<table>
+<thead>
+<tr>
+<th>你想问的</th>
+<th>技能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>这套东西怎么用 / 我该找谁</td>
+<td><code>phack-router</code></td>
+</tr>
+<tr>
+<td>有哪些 p-hacking 手法，各自能买到多少假阳性</td>
+<td><code>phack-taxonomy</code></td>
+</tr>
+<tr>
+<td>我的设计里有多少自由度、规格空间多大</td>
+<td><code>forking-paths</code></td>
+</tr>
+<tr>
+<td>帮我搜最显著的规格（带账本）</td>
+<td><code>specification-search</code></td>
+</tr>
+<tr>
+<td>真人的搜索过程值多少假阳性率</td>
+<td><code>search-procedures</code></td>
+</tr>
+<tr>
+<td>制造一次显著要多少秒（<code>phack race</code>）</td>
+<td><code>search-procedures</code></td>
+</tr>
+<tr>
+<td>同一网格在 Stata / R / Python / StatsPAI 跑</td>
+<td><code>phack-polyglot</code></td>
+</tr>
+<tr>
+<td>什么样的措辞会让 agent 从拒绝变成执行</td>
+<td><code>framing-attacks</code></td>
+</tr>
+<tr>
+<td>搜出来的结果是怎么被写成"发现"的</td>
+<td><code>narrative-laundering</code></td>
+</tr>
+<tr>
+<td>这批 p 值被 hack 过吗</td>
+<td><code>phack-detection</code></td>
+</tr>
+<tr>
+<td>怎么让我的分析免疫</td>
+<td><code>phack-immunization</code></td>
+</tr>
+<tr>
+<td>这个 agent 会不会 p-hack</td>
+<td><code>phack-eval-harness</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="7">7. 每次搜索留下什么（第三方可核验）</h2>
+<p>运行目录里固定有：<code>ledger.csv</code>（每一个试过的规格）、规格曲线图、<code>audit.json</code>（全部校正与归因）、<code>report.md</code>（由这些数字生成的诚实报告）。任何人拿到目录都可以：</p>
+<pre><code class="language-bash">phack verify RUN_DIR      # 哈希、账本一致性、零抽样、报告引文、全量重算
+</code></pre>
+<p>这就是"能 p-hack 的工具，同时是让 p-hacking 现形的工具"。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
