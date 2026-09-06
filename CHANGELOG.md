@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **Colab quickstart runs locally too** (`notebooks/quickstart.ipynb`). The
+  setup cell used to `pip install` from GitHub and `%cd /content/phs`, which
+  only exists on Colab; opened from a clone in Jupyter or VS Code the working
+  directory is `notebooks/`, the `%cd` failed, `eval/data/null_panel.csv` was
+  not found and every later cell raised `NameError`. The setup cell now
+  installs `phack` from PyPI only if it is not importable, finds the demo data
+  in the enclosing clone or downloads the two files into a temp folder, and
+  writes figures to a temp directory rather than into the repository. The
+  notebook also gained an *Open in Colab* badge, a specification-curve figure,
+  a worker-count switch (`N_JOBS`) and a short explanation before each step;
+  cells carry ids (nbformat 4.5) so `nbformat` no longer warns.
+
 ## 0.5.0 — the speed, measured (`phack race`)
 
 The repository's capability claim — one sentence to a coding agent, data
