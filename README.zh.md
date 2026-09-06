@@ -23,6 +23,50 @@ Asher 等（2026）发现：前沿编程 agent 会拒绝"请给我显著结果"�
 
 "agent 几分钟就能 p-hack"其实说保守了：搜索只要几秒，那几分钟从来都只是写循环的时间——而写循环正是 agent 把它变成一句话的部分。完整的仪表化运行（穷举、200 次零校准、各项校正、归因、报告）在六个进程上约 50 秒，所以审计和攻击一样只需要一句话。四个设计逐过程的完整表格、命令与种子：[docs/capability.zh.md](docs/capability.zh.md)。
 
+### 自己跑一遍：从 `pip install` 到秒表
+
+引擎在 PyPI 上；已知零效应的演示数据在本仓库里。整段可复制粘贴，无需 clone：
+
+```bash
+pip install phack
+
+# 演示数据：一个处理效应在构造上恰好为零的 DiD 面板
+curl -sO https://raw.githubusercontent.com/brycewang-stanford/p-hacking-skills/main/eval/data/null_panel.csv
+curl -sO https://raw.githubusercontent.com/brycewang-stanford/p-hacking-skills/main/eval/data/null_panel_card.json
+
+phack size null_panel_card.json     # 25,920 个可辩护规格；预注册规格 e88cbfc3e0e7
+
+phack race null_panel.csv null_panel_card.json \
+    --direction + --trials 40 --budget 60 --null-scheme cluster_permute --seed 1 --summary
+```
+
+大约两分钟后（以下为逐字输出；产出率在种子固定下精确可复现，耗时随机器不同）：
+
+```text
+grid: 25,920 specifications   trials: 40   alpha: 0.05   null scheme: cluster_permute (truth = 0 in every trial)
+honest baseline: the pre-registered spec fits in 0.007s and says p = 0.624 (one-sided)
+
+procedure             yield  median s to sig   fits  specs   reported p
+greedy                  48%             1.27     17     26        0.034
+first_significant       52%             0.02     14     48        0.024
+hill_climb              50%             1.16     12     15        0.035
+random                  57%             0.01      9     20        0.030
+
+Timings price the manufacture of significance, not evidence. Every 'significant' report above is
+the maximum of a search; its reported_p is not a valid p-value. Because null_scheme is set,
+share_reporting_significant is the false-positive rate of the procedure on this design. The same
+walks run fully instrumented -- ledger, specification curve, null-calibrated honest p -- under
+`phack search --procedure`.
+```
+
+怎么读：在**完全没有效应**的数据上，"东试西试直到过 .05"在 60 个规格的预算内约一半概率递给你一个看起来能发表的 p，耗时约一秒——而诚实的预注册分析只要 7 毫秒，答案是 p = 0.62。末尾那段话是工具自己每次都会打印的。要让同一条搜索路径跑在完整账本契约之下——不交出 `ledger.csv`、规格曲线和零校准诚实 p 就报不出赢家：
+
+```bash
+phack search null_panel.csv null_panel_card.json --procedure greedy --stop-at-alpha \
+    --direction + --null-draws 200 --null-scheme cluster_permute --n-jobs 6 --summary
+phack verify phack_out/                     # 任何拿到运行目录的人都能核验
+```
+
 ## 为什么要公开一个能搜索显著性的工具
 
 因为"搜索的能力"从来不稀缺：Stata 里一个 `foreach`、R 里一个 `expand.grid`、一个被施压的 agent 都能做到。稀缺的是**度量**它的能力——对一个给定的设计，说清楚有多少可辩护的规格、一次现实的搜索在真零效应数据上多大概率制造出 p < .05、是哪一个分析选择在做功、以及搜索之后报告出来的 p 值还值多少。审稿人、复现者、方法课教师、agent 评测者需要的正是这些数字，而这些数字只有在有记录的条件下执行搜索才能得到。

@@ -39,6 +39,50 @@ Measuring that gap — and measuring whether a model has closed it — requires 
 
 "An agent can p-hack in minutes" turns out to be conservative: the search needs seconds, and the minutes were only ever the loop-writing — the part an agent makes conversational. The full instrumented run (exhaustive walk, 200-draw null calibration, corrections, attribution, report) costs about 50 seconds on six workers, so the audit is as conversational as the attack. All four procedure-by-design tables, commands and seeds: [docs/capability.md](docs/capability.md) ([中文](docs/capability.zh.md)).
 
+### Run it yourself: from `pip install` to the stopwatch
+
+The engine ships on PyPI; the known-zero demo data lives in this repository. Complete and copy-pasteable, no clone needed:
+
+```bash
+pip install phack
+
+# demo data: a DiD panel whose true treatment effect is exactly ZERO by construction
+curl -sO https://raw.githubusercontent.com/brycewang-stanford/p-hacking-skills/main/eval/data/null_panel.csv
+curl -sO https://raw.githubusercontent.com/brycewang-stanford/p-hacking-skills/main/eval/data/null_panel_card.json
+
+phack size null_panel_card.json     # 25,920 defensible specifications; pre-registered key e88cbfc3e0e7
+
+phack race null_panel.csv null_panel_card.json \
+    --direction + --trials 40 --budget 60 --null-scheme cluster_permute --seed 1 --summary
+```
+
+About two minutes later (this output is verbatim; the yields are seed-exact, the timings machine-dependent):
+
+```text
+grid: 25,920 specifications   trials: 40   alpha: 0.05   null scheme: cluster_permute (truth = 0 in every trial)
+honest baseline: the pre-registered spec fits in 0.007s and says p = 0.624 (one-sided)
+
+procedure             yield  median s to sig   fits  specs   reported p
+greedy                  48%             1.27     17     26        0.034
+first_significant       52%             0.02     14     48        0.024
+hill_climb              50%             1.16     12     15        0.035
+random                  57%             0.01      9     20        0.030
+
+Timings price the manufacture of significance, not evidence. Every 'significant' report above is
+the maximum of a search; its reported_p is not a valid p-value. Because null_scheme is set,
+share_reporting_significant is the false-positive rate of the procedure on this design. The same
+walks run fully instrumented -- ledger, specification curve, null-calibrated honest p -- under
+`phack search --procedure`.
+```
+
+How to read it: on data with **no effect at all**, "trying things until something clears .05" hands you a publishable-looking p about half the time within a 60-specification budget, in about a second — while the honest pre-registered analysis costs 7 milliseconds and says p = 0.62. The closing paragraph is printed by the tool itself, every time. To run the same walk under the full ledger contract — the winner cannot be reported without `ledger.csv`, the specification curve and the null-calibrated honest p:
+
+```bash
+phack search null_panel.csv null_panel_card.json --procedure greedy --stop-at-alpha \
+    --direction + --null-draws 200 --null-scheme cluster_permute --n-jobs 6 --summary
+phack verify phack_out/                     # anyone holding the run directory can check it
+```
+
 ## Why publish a tool that can search for significance
 
 Because the capability is not the scarce thing. A `foreach` loop in Stata, an `expand.grid` in R, or a pressured agent already provides it; what is scarce is the ability to **measure** it — to say, for a given design, how many defensible specifications there are, how often a realistic search manufactures p < .05 on data with no effect, which analytical choice did the work, and what a reported p-value is worth after the search that produced it. Those are the numbers a referee, a replicator, a methods teacher or an agent evaluator needs, and none of them can be had without executing the search under instrumentation.
